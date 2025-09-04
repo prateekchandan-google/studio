@@ -22,9 +22,9 @@ export function Header() {
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Logo className="h-6 w-6" />
+            <Logo className="h-6 w-auto" />
             <span className="hidden font-bold sm:inline-block font-headline">
-              Pathfinders
+              GTV Treasure Hunt
             </span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
@@ -45,8 +45,8 @@ export function Header() {
 
         <div className="flex flex-1 items-center justify-between space-x-2 md:hidden">
           <Link href="/" className="flex items-center space-x-2">
-            <Logo className="h-6 w-6" />
-            <span className="font-bold font-headline">Pathfinders</span>
+            <Logo className="h-6 w-auto" />
+            <span className="font-bold font-headline">GTV Treasure Hunt</span>
           </Link>
           <Sheet>
             <SheetTrigger asChild>

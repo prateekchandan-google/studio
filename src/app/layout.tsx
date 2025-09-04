@@ -4,7 +4,7 @@ import { Header } from '@/components/header';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Pathfinders',
+  title: 'Google TV Treasure hunt 2025 edition',
   description: 'An interactive scavenger hunt game.',
 };
 
