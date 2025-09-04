@@ -10,9 +10,9 @@ export interface Team {
 }
 
 export interface Puzzle {
-  id: number;
+  id: string; // Changed from number to string to support Firestore IDs
   title: string;
-  description: string;
+  description:string;
   hint: string;
   solution: string;
 }
@@ -21,7 +21,7 @@ export interface Submission {
   id: string;
   teamId: string;
   teamName: string;
-  puzzleId: number;
+  puzzleId: string; // Changed from number to string
   puzzleTitle: string;
   textSubmission: string;
   imageSubmissionUrl?: string;

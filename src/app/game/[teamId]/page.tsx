@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { puzzles } from '@/lib/data';
 import type { Puzzle, Team } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +27,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   const { teamId } = params;
   const router = useRouter();
   const [team, setTeam] = useState<Team | undefined>();
+  const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
   const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle | undefined>();
   const [timeLeft, setTimeLeft] = useState(PUZZLE_DURATION);
   const [isPaused, setIsPaused] = useState(false);
@@ -38,14 +38,24 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   const [playerName, setPlayerName] = useState<string | null>(null);
 
   const { toast } = useToast();
+  
+  useEffect(() => {
+    const puzzlesQuery = query(collection(db, 'puzzles'), orderBy('title', 'asc'));
+    const unsubscribePuzzles = onSnapshot(puzzlesQuery, (snapshot) => {
+        const puzzlesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
+        setPuzzles(puzzlesData);
+    });
+    
+    return () => unsubscribePuzzles();
+  }, []);
 
   useEffect(() => {
-    if (!teamId) return;
+    if (!teamId || puzzles.length === 0) return;
     
     setPlayerName(localStorage.getItem(`pathfinder-player-${teamId}`));
 
     const teamDocRef = doc(db, 'teams', teamId);
-    const unsubscribe = onSnapshot(teamDocRef, (doc) => {
+    const unsubscribeTeam = onSnapshot(teamDocRef, (doc) => {
       if (doc.exists()) {
         const teamData = doc.data() as Team;
         setTeam(teamData);
@@ -63,8 +73,8 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
         setIsLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [teamId]);
+    return () => unsubscribeTeam();
+  }, [teamId, puzzles]);
 
   useEffect(() => {
     if(!team) return;
@@ -100,7 +110,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   };
   
   const handleSkip = () => {
-    if (!team) return;
+    if (!team || puzzles.length === 0) return;
       const nextPuzzleIndex = (team.currentPuzzleIndex + 1) % puzzles.length;
       // This should also be an atomic server update
       setTeam(t => t ? ({...t, currentPuzzleIndex: nextPuzzleIndex}) : undefined);
@@ -144,7 +154,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     router.push('/');
   };
   
-  if (isLoading) {
+  if (isLoading || puzzles.length === 0) {
     return (
         <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
             <Loader className="w-12 h-12 animate-spin text-primary" />
