@@ -12,10 +12,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { UserPlus, Users, X, Copy, Check, ArrowRight, Bot } from 'lucide-react';
+import { UserPlus, Users, X, Copy, Check, ArrowRight, Bot, Loader } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { Team } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { generateTeamName } from '@/ai/flows/name-generator';
 
 
 const houseNames = ["Halwa", "Chamcham", "Jalebi", "Ladoo"] as const;
@@ -34,6 +35,7 @@ export default function RegistrationPage() {
   const [secretCode, setSecretCode] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingName, setIsGeneratingName] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -51,17 +53,37 @@ export default function RegistrationPage() {
   });
   
   const handleGenerateName = async () => {
-    // In a real app, this would call a Genkit flow
+    const houseName = form.getValues('houseName');
+    if (!houseName) {
+        toast({
+            title: "Select a house first!",
+            description: "Please choose a house before generating a name.",
+            variant: "destructive",
+        });
+        return;
+    }
+    setIsGeneratingName(true);
     toast({ title: "Generating team name...", description: "Please wait a moment." });
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    const suggestedName = `${form.getValues('houseName') || 'Awesome'} Adventurers`;
-    form.setValue('teamName', suggestedName);
-     toast({ title: "Name Suggested!", description: `How about "${suggestedName}"?` });
+    
+    try {
+        const result = await generateTeamName({ houseName });
+        if (result.teamName) {
+            form.setValue('teamName', result.teamName);
+            toast({ title: "Name Suggested!", description: `How about "${result.teamName}"?` });
+        } else {
+            toast({ title: "Could not generate name", description: "The AI was unable to suggest a name. Please try again.", variant: "destructive" });
+        }
+    } catch (error) {
+        console.error("Failed to generate team name", error);
+        toast({ title: "An Error Occurred", description: "Failed to connect to the name generation service.", variant: "destructive" });
+    } finally {
+        setIsGeneratingName(false);
+    }
   }
 
   const onSubmit = async (data: RegistrationFormValues) => {
     setIsSubmitting(true);
-    const teamId = data.houseName.toLowerCase();
+    const teamId = `${data.houseName.toLowerCase()}-${data.teamName.toLowerCase().replace(/\s+/g, '-')}`;
     const newSecretCode = `${teamId}-${Math.random().toString(36).substring(2, 8)}`;
 
     const newTeam: Team = {
@@ -181,10 +203,10 @@ export default function RegistrationPage() {
                       <FormLabel>Team Name</FormLabel>
                       <div className="flex gap-2">
                         <FormControl>
-                          <Input placeholder="The Seekers..." {...field} disabled={isSubmitting} />
+                          <Input placeholder="The Seekers..." {...field} disabled={isSubmitting || isGeneratingName} />
                         </FormControl>
-                        <Button type="button" variant="outline" size="icon" onClick={handleGenerateName} disabled={isSubmitting}>
-                           <Bot className="w-4 h-4" />
+                        <Button type="button" variant="outline" size="icon" onClick={handleGenerateName} disabled={isSubmitting || isGeneratingName}>
+                           {isGeneratingName ? <Loader className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
                            <span className="sr-only">Generate Name</span>
                         </Button>
                       </div>
