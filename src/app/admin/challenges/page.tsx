@@ -2,258 +2,354 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Puzzle } from '@/lib/types';
+import type { Team } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Edit, Trash2, PlusCircle, Loader, X, Puzzle as PuzzleIcon } from 'lucide-react';
+import { Edit, Trash2, Users, Loader, X, UserPlus } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
-const puzzleSchema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters long.'),
-  description: z.string().min(10, 'Description must be at least 10 characters long.'),
-  hint: z.string().min(5, 'Hint must be at least 5 characters long.'),
-  solution: z.string().min(1, 'Solution cannot be empty.'),
+const houseNames = ["Halwa", "Chamcham", "Jalebi", "Ladoo"] as const;
+
+const teamEditSchema = z.object({
+  name: z.string().min(3, 'Team name must be at least 3 characters.'),
+  house: z.enum(houseNames, { required_error: 'Please select a house.' }),
+  bonusScore: z.coerce.number().int().optional(),
+  members: z.array(z.object({ name: z.string().min(1, 'Member name cannot be empty.') }))
+    .min(1, 'A team must have at least 1 member.')
+    .max(7, 'A maximum of 7 members is allowed.'),
 });
 
-type PuzzleFormValues = z.infer<typeof puzzleSchema>;
+type TeamEditFormValues = z.infer<typeof teamEditSchema>;
 
-export default function PuzzleManagementPage() {
-  const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
+export default function TeamManagementPage() {
+  const [teams, setTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingPuzzle, setEditingPuzzle] = useState<Puzzle | null>(null);
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const form = useForm<PuzzleFormValues>({
-    resolver: zodResolver(puzzleSchema),
-    defaultValues: { title: '', description: '', hint: '', solution: '' },
+  const form = useForm<TeamEditFormValues>({
+    resolver: zodResolver(teamEditSchema),
   });
 
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "members",
+  });
+  
   useEffect(() => {
-    const puzzlesQuery = query(collection(db, 'puzzles'));
+    if (editingTeam) {
+      form.reset({ 
+        name: editingTeam.name, 
+        house: editingTeam.house, 
+        bonusScore: 0,
+        members: editingTeam.members.map(name => ({ name })),
+      });
+    } else {
+      form.reset({ name: '', house: undefined, bonusScore: 0, members: [] });
+    }
+  }, [editingTeam, form]);
+
+
+  useEffect(() => {
+    const teamsQuery = query(collection(db, 'teams'), orderBy('name', 'asc'));
+
     const unsubscribe = onSnapshot(
-      puzzlesQuery,
-      (snapshot) => {
-        const puzzlesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
-        setPuzzles(puzzlesData);
+      teamsQuery,
+      (querySnapshot) => {
+        const teamsData: Team[] = [];
+        querySnapshot.forEach((doc) => {
+          teamsData.push({ id: doc.id, ...doc.data() } as Team);
+        });
+        setTeams(teamsData);
         setIsLoading(false);
       },
       (error) => {
-        console.error("Error fetching puzzles: ", error);
-        toast({ title: "Error", description: "Could not load puzzle data.", variant: "destructive" });
+        console.error('Failed to fetch teams from Firestore', error);
+        setTeams([]);
         setIsLoading(false);
       }
     );
+
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (editingPuzzle) {
-      form.reset(editingPuzzle);
-    } else {
-      form.reset({ title: '', description: '', hint: '', solution: '' });
-    }
-  }, [editingPuzzle, form]);
-
-  const handleEditClick = (puzzle: Puzzle) => {
-    setEditingPuzzle(puzzle);
+  const handleEditClick = (team: Team) => {
+    setEditingTeam(team);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
   const handleCancelEdit = () => {
-    setEditingPuzzle(null);
+    setEditingTeam(null);
   };
 
-  const onSubmit = async (data: PuzzleFormValues) => {
+  const onSubmit = async (data: TeamEditFormValues) => {
+    if (!editingTeam) return;
+
     setIsSubmitting(true);
     try {
-      if (editingPuzzle) {
-        const puzzleRef = doc(db, 'puzzles', editingPuzzle.id);
-        await updateDoc(puzzleRef, data);
-        toast({ title: 'Puzzle Updated', description: `"${data.title}" has been successfully updated.` });
-      } else {
-        await addDoc(collection(db, 'puzzles'), data);
-        toast({ title: 'Puzzle Created', description: `"${data.title}" has been added to the game.` });
+      const teamRef = doc(db, 'teams', editingTeam.id);
+      
+      const updateData: any = {
+        name: data.name,
+        house: data.house,
+        members: data.members.map(m => m.name),
+      };
+
+      if (data.bonusScore) {
+          updateData.score = increment(data.bonusScore);
       }
-      setEditingPuzzle(null);
+
+      await updateDoc(teamRef, updateData);
+      
+      toast({ title: 'Team Updated', description: `"${data.name}" has been successfully updated.` + (data.bonusScore ? ` ${data.bonusScore} bonus points awarded.` : '')});
+      setEditingTeam(null);
     } catch (error) {
-      console.error('Failed to save puzzle', error);
-      toast({ title: 'Save Failed', description: 'Could not save the puzzle. Please try again.', variant: 'destructive' });
+      console.error('Failed to update team', error);
+      toast({ title: 'Update Failed', description: 'Could not save team changes. Please try again.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
   };
   
-  const handleDelete = async (puzzleId: string) => {
+  const handleDelete = async (teamId: string) => {
     try {
-      await deleteDoc(doc(db, 'puzzles', puzzleId));
-      toast({ title: 'Puzzle Deleted', description: 'The puzzle has been successfully removed.' });
-      if (editingPuzzle?.id === puzzleId) {
-        setEditingPuzzle(null);
+      await deleteDoc(doc(db, 'teams', teamId));
+      toast({ title: 'Team Deleted', description: 'The team has been successfully removed.' });
+      if (editingTeam?.id === teamId) {
+        setEditingTeam(null);
       }
     } catch (error) {
-      console.error('Failed to delete puzzle', error);
-      toast({ title: 'Deletion Failed', description: 'Could not delete the puzzle. Please try again.', variant: 'destructive' });
+      console.error('Failed to delete team', error);
+      toast({ title: 'Deletion Failed', description: 'Could not delete the team. Please try again.', variant: 'destructive' });
     }
   };
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-8">
-      <header>
+      <header className="mb-8">
         <h1 className="text-4xl font-headline font-bold tracking-tight lg:text-5xl">
-          Puzzle Management
+          Team Management
         </h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Create, edit, and manage the challenges for the treasure hunt.
+          View, edit, and manage all registered teams.
         </p>
       </header>
 
-      <Card>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+      {editingTeam && (
+        <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {editingPuzzle ? <Edit className="w-6 h-6"/> : <PlusCircle className="w-6 h-6"/>}
-                {editingPuzzle ? `Edit Puzzle: ${editingPuzzle.title}` : 'Create New Puzzle'}
-              </CardTitle>
-              <CardDescription>
-                {editingPuzzle ? 'Modify the details for this puzzle below.' : 'Fill out the form to add a new puzzle to the game.'}
-              </CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                    <Edit className="w-6 h-6"/>
+                    Edit Team: {editingTeam.name}
+                </CardTitle>
+                <CardDescription>
+                    Modify the details for this team.
+                </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Puzzle Title</FormLabel>
-                    <FormControl><Input {...field} placeholder="e.g., The Merchant's Dilemma" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description (The Puzzle/Riddle)</FormLabel>
-                    <FormControl><Textarea {...field} placeholder="What has an eye, but cannot see?" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="hint"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Hint</FormLabel>
-                    <FormControl><Textarea {...field} placeholder="It's often used for sewing." /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="solution"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Solution</FormLabel>
-                    <FormControl><Input {...field} placeholder="A needle" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-            <CardFooter className="flex justify-end gap-2">
-              {editingPuzzle && (
-                <Button type="button" variant="ghost" onClick={handleCancelEdit}>
-                  <X className="mr-2 h-4 w-4" /> Cancel
-                </Button>
-              )}
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : (editingPuzzle ? <Edit className="mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />)}
-                {isSubmitting ? 'Saving...' : (editingPuzzle ? 'Save Changes' : 'Create Puzzle')}
-              </Button>
-            </CardFooter>
-          </form>
-        </Form>
-      </Card>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                    <CardContent className="space-y-6">
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Team Name</FormLabel>
+                                    <FormControl>
+                                    <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="house"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>House</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                            <SelectValue placeholder="Select a house" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {houseNames.map(house => (
+                                            <SelectItem key={house} value={house}>{house}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                         <FormField
+                            control={form.control}
+                            name="bonusScore"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Award Bonus Score</FormLabel>
+                                <FormControl>
+                                <Input type="number" placeholder="Enter points to add to the current score" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <div className="space-y-4">
+                          <Label>Team Members ({fields.length}/7)</Label>
+                          {fields.map((field, index) => (
+                            <FormField
+                              key={field.id}
+                              control={form.control}
+                              name={`members.${index}.name`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex items-center gap-2">
+                                    <FormControl>
+                                      <Input placeholder={`Member ${index + 1} Name`} {...field} disabled={isSubmitting}/>
+                                    </FormControl>
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={isSubmitting || fields.length <= 1}>
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          ))}
+                          {form.formState.errors.members && (fields.length < 1 || fields.length > 7) && (
+                              <p className="text-sm font-medium text-destructive">
+                                  {form.formState.errors.members?.message}
+                              </p>
+                          )}
+                           {form.formState.errors.members?.root && (
+                              <p className="text-sm font-medium text-destructive">
+                                  {form.formState.errors.members.root.message}
+                              </p>
+                          )}
+                          {fields.length < 7 && (
+                            <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '' })} disabled={isSubmitting}>
+                              <UserPlus className="mr-2 h-4 w-4" />
+                              Add Member
+                            </Button>
+                          )}
+                        </div>
+                    </CardContent>
+                    <CardFooter className="flex gap-2 justify-end">
+                        <Button type="button" variant="ghost" onClick={handleCancelEdit}>
+                            <X className="mr-2 h-4 w-4" />
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <Loader className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Edit className="mr-2 h-4 w-4" />
+                            )}
+                            {isSubmitting ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                    </CardFooter>
+                </form>
+            </Form>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Existing Puzzles</CardTitle>
-          <CardDescription>A list of all puzzles currently in the game.</CardDescription>
+          <CardTitle>All Teams</CardTitle>
+          <CardDescription>
+            A list of all teams currently in the game.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center gap-2 py-8">
-              <Loader className="w-5 h-5 animate-spin" />
-              <span>Loading puzzles...</span>
-            </div>
-          ) : puzzles.length > 0 ? (
-            <Accordion type="single" collapsible className="w-full">
-              {puzzles.map((puzzle) => (
-                <AccordionItem value={puzzle.id} key={puzzle.id}>
-                  <AccordionTrigger className="hover:no-underline">
-                    <div className='flex justify-between items-center w-full pr-4'>
-                        <span className='font-headline text-lg'>{puzzle.title}</span>
-                        <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEditClick(puzzle); }}>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Team Name</TableHead>
+                <TableHead>House</TableHead>
+                <TableHead>Members</TableHead>
+                <TableHead className="text-right">Score</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader className="w-5 h-5 animate-spin" />
+                      Loading teams...
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                teams.map((team) => (
+                  <TableRow key={team.id}>
+                    <TableCell className="font-medium">{team.name}</TableCell>
+                    <TableCell>{team.house}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-4 w-4 text-muted-foreground" /> 
+                        {team.members.length}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-bold">{team.score}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="ghost" size="icon" onClick={() => handleEditClick(team)}>
                           <Edit className="h-4 w-4" />
-                          <span className="sr-only">Edit Puzzle</span>
+                          <span className="sr-only">Edit Team</span>
                         </Button>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
-                              <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">Delete Puzzle</span>
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete the puzzle "{puzzle.title}". This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(puzzle.id)}>Yes, delete it</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Delete Team</span>
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the team
+                                    "{team.name}".
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(team.id)}>
+                                    Yes, delete it
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
                         </AlertDialog>
                       </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="space-y-4">
-                    <p><strong>Description:</strong> {puzzle.description}</p>
-                    <p><strong>Hint:</strong> {puzzle.hint}</p>
-                    <p><strong>Solution:</strong> <span className='font-mono bg-secondary px-2 py-1 rounded'>{puzzle.solution}</span></p>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          ) : (
-             <div className="text-center py-10 border-2 border-dashed rounded-lg">
-                <PuzzleIcon className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-medium">No Puzzles Yet</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Use the form above to create your first puzzle.</p>
-            </div>
-          )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    
