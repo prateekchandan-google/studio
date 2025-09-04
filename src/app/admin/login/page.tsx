@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Lock } from 'lucide-react';
 
 // In a real app, this would be an environment variable.
-const SECRET_CODE = 'pathfinder_admin_2024';
+const SECRET_CODE = 'tv-blr-treasure-ka-god';
 
 export default function AdminLoginPage() {
   const router = useRouter();
