@@ -10,8 +10,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Space Grotesk', 'sans-serif'],
+        body: ['Lato', 'sans-serif'],
+        headline: ['"IM Fell Double Pica"', 'serif'],
         code: ['monospace'],
       },
       colors: {
