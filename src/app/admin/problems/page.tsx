@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { addDoc, collection } from 'firebase/firestore';
+// import { addDoc, collection } from 'firebase/firestore'; <-- REMOVED
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +25,7 @@ const puzzleSchema = z.object({
 type PuzzleFormValues = z.infer<typeof puzzleSchema>;
 
 export default function ProblemsPage() {
-  const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isFormVisible, setIsFormVisible] = useState(true); // Default to true to show form
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -54,37 +54,9 @@ export default function ProblemsPage() {
     console.log("Simulating puzzle submission with data:", data);
 
     // This is a temporary simulation to avoid the 504 error.
-    // The actual database call is commented out below.
-    // You should check your Firestore security rules for the 'puzzles' collection.
+    // In a future step, we'll re-add the Firestore logic safely.
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    /*
-    // This is the line likely causing the timeout.
-    try {
-        await addDoc(collection(db, 'puzzles'), {
-            title: data.title,
-            description: data.description,
-            hint: data.hint,
-            solution: data.solution,
-        });
-        toast({
-            title: 'Puzzle Created!',
-            description: `The puzzle "${data.title}" has been successfully added.`,
-        });
-        setIsFormVisible(false);
-    } catch (error) {
-        console.error('Error adding document: ', error);
-        toast({
-            title: 'Error',
-            description: 'Could not save the puzzle. Please try again.',
-            variant: 'destructive',
-        });
-    } finally {
-        setIsSubmitting(false);
-    }
-    */
-    
-    // Simulating success:
     toast({
         title: 'Puzzle Created! (Simulated)',
         description: `The puzzle "${data.title}" has been successfully added.`,
