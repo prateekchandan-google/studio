@@ -65,12 +65,15 @@ export default function RegistrationPage() {
       const otherTeams = existingTeams.filter((t: Team) => t.id !== newTeam.id);
       const updatedTeams = [...otherTeams, newTeam];
       localStorage.setItem('treasure-hunt-teams', JSON.stringify(updatedTeams));
+
+      const newSecretCode = `${teamId}-${Math.random().toString(36).substring(2, 8)}`;
+      localStorage.setItem(`team-secret-${teamId}`, newSecretCode);
+      setSecretCode(newSecretCode);
+
     } catch (error) {
         console.error("Could not save team to localStorage", error);
     }
 
-    const newSecretCode = `${teamId}-${Math.random().toString(36).substring(2, 8)}`;
-    setSecretCode(newSecretCode);
   };
 
   const copyToClipboard = () => {

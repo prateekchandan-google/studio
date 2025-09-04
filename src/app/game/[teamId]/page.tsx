@@ -10,9 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Lightbulb, SkipForward, Timer, Send, Info, Frown } from 'lucide-react';
+import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check } from 'lucide-react';
+import QRCode from "react-qr-code";
+
 
 const HINT_TIME = 5 * 60; // 5 minutes in seconds
 const SKIP_TIME = 10 * 60; // 10 minutes in seconds
@@ -24,7 +27,10 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   const [timeLeft, setTimeLeft] = useState(PUZZLE_DURATION);
   const [isPaused, setIsPaused] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  
+  const [secretCode, setSecretCode] = useState('');
+  const [gameUrl, setGameUrl] = useState('');
+  const [hasCopied, setHasCopied] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -35,6 +41,11 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
         if (foundTeam) {
             setTeam(foundTeam);
             setCurrentPuzzle(puzzles[foundTeam.currentPuzzleIndex]);
+            const storedCode = localStorage.getItem(`team-secret-${params.teamId}`);
+            if(storedCode) {
+              setSecretCode(storedCode);
+            }
+            setGameUrl(window.location.href);
         }
     } catch (error) {
         console.error("Failed to retrieve teams from localStorage", error);
@@ -101,6 +112,14 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const copyToClipboard = () => {
+    if (secretCode) {
+      navigator.clipboard.writeText(secretCode);
+      setHasCopied(true);
+      setTimeout(() => setHasCopied(false), 2000);
+    }
+  };
+
   if (!team || !currentPuzzle) {
     return (
         <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
@@ -132,6 +151,48 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h1 className="text-2xl font-headline font-bold">{team.name}</h1>
+          <p className="text-muted-foreground">House: {team.house} | Score: {team.score}</p>
+        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline"><Share2 className="mr-2 h-4 w-4" /> Share Team Code</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="font-headline text-2xl">Join the Team!</DialogTitle>
+              <DialogDescription>
+                Use the secret code or scan the QR code to join your team's game.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="secret-code-display">Your Secret Code</Label>
+                <div className="relative mt-1">
+                  <Input id="secret-code-display" readOnly value={secretCode} className="pr-10 font-mono tracking-wider"/>
+                  <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8"
+                      onClick={copyToClipboard}
+                  >
+                      {hasCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-4">
+                  <p className="text-sm text-muted-foreground">Or scan with your phone</p>
+                  <div className="bg-white p-4 rounded-lg">
+                    {gameUrl && <QRCode value={gameUrl} size={180} />}
+                  </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <Card className="h-full flex flex-col">
