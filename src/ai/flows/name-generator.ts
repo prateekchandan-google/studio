@@ -38,11 +38,7 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateTeamNameOutputSchema},
   prompt: `You are a creative assistant for a treasure hunt game.
 
-Generate a fun, creative, and adventurous team name. The team name must be alliterative with the provided house name.
-
-For example, if the house is "Ladoo", a good name would be "Ladoo Legends". If the house is "Jalebi", a good name would be "Jalebi Jaguars".
-
-House Name: {{{houseName}}}
+Generate a fun, creative, and adventurous team name. The team name must be alliterative with the provided house name. Please feel free to be creative with 1-2 word house names and treasure hunt foo and good words.
 `,
 });
 

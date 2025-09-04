@@ -42,26 +42,24 @@ export default function StartGamePage() {
     setIsSubmitting(true);
     setError('');
     
-    if (!secretCode.includes('-')) {
-        setError('Invalid secret code format.');
+    // The secret code is now the teamId
+    const teamId = secretCode.trim();
+    if (!teamId) {
+        setError('Secret code cannot be empty.');
         setIsSubmitting(false);
         return;
     }
 
-    const teamId = secretCode.split('-')[0];
     try {
         const teamDocRef = doc(db, "teams", teamId);
         const teamDoc = await getDoc(teamDocRef);
 
         if (teamDoc.exists()) {
             const teamData = teamDoc.data() as Team;
-            if (teamData.secretCode === secretCode) {
-                setTeam(teamData);
-            } else {
-                setError('Invalid secret code.');
-            }
+            // The secret code is the ID, so if the doc exists, the code is valid.
+            setTeam(teamData);
         } else {
-            setError('Team not found.');
+            setError('Team not found. Please check your secret code.');
         }
     } catch (err) {
         console.error("Firestore error:", err);

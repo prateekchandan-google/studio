@@ -83,8 +83,7 @@ export default function RegistrationPage() {
 
   const onSubmit = async (data: RegistrationFormValues) => {
     setIsSubmitting(true);
-    const teamId = `${data.houseName.toLowerCase()}-${data.teamName.toLowerCase().replace(/\s+/g, '-')}`;
-    const newSecretCode = `${teamId}-${Math.random().toString(36).substring(2, 8)}`;
+    const teamId = `${data.houseName.toLowerCase()}-${Math.random().toString(36).substring(2, 8)}`;
 
     const newTeam: Team = {
       id: teamId,
@@ -94,12 +93,12 @@ export default function RegistrationPage() {
       score: 100,
       riddlesSolved: 0,
       currentPuzzleIndex: 0,
-      secretCode: newSecretCode
+      secretCode: teamId
     };
     
     try {
       await setDoc(doc(db, "teams", teamId), newTeam);
-      setSecretCode(newSecretCode);
+      setSecretCode(teamId);
     } catch (error) {
         console.error("Could not save team to Firestore", error);
         toast({
@@ -137,7 +136,7 @@ export default function RegistrationPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
-                    <div className="bg-muted p-4 rounded-lg font-mono text-2xl tracking-widest relative">
+                    <div className="bg-muted p-4 rounded-lg font-mono text-lg tracking-widest relative">
                         <span>{secretCode}</span>
                         <Button
                             variant="ghost"
