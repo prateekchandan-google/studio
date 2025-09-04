@@ -86,7 +86,7 @@ export default function StartGamePage() {
           <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
             <Key className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="font-headline text-2xl">Start the Game</CardTitle>
+          <CardTitle className="font-headline text-2xl">Start Game</CardTitle>
           <CardDescription>Enter your team's secret code to begin.</CardDescription>
         </CardHeader>
         <Form {...form}>
