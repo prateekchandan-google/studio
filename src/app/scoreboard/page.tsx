@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { teams as allTeams } from "@/lib/data";
-import { Trophy } from "lucide-react";
+import { Trophy, ShieldX } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ScoreboardPage() {
@@ -84,19 +84,30 @@ export default function ScoreboardPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedTeams.map((team, index) => (
-              <TableRow key={team.id} className={index < 3 ? "bg-secondary/50" : ""}>
-                <TableCell className="text-center">
-                  <span className={`text-xl font-bold ${getRankColor(index + 1)}`}>
-                    {index + 1}
-                  </span>
+            {sortedTeams.length > 0 ? (
+              sortedTeams.map((team, index) => (
+                <TableRow key={team.id} className={index < 3 ? "bg-secondary/50" : ""}>
+                  <TableCell className="text-center">
+                    <span className={`text-xl font-bold ${getRankColor(index + 1)}`}>
+                      {index + 1}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-medium">{team.name}</TableCell>
+                  <TableCell>{team.house}</TableCell>
+                  <TableCell className="text-right">{team.riddlesSolved}</TableCell>
+                  <TableCell className="text-right font-bold text-lg">{team.score}</TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center">
+                  <div className="flex justify-center items-center gap-2">
+                    <ShieldX className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-muted-foreground">No teams have registered yet.</span>
+                  </div>
                 </TableCell>
-                <TableCell className="font-medium">{team.name}</TableCell>
-                <TableCell>{team.house}</TableCell>
-                <TableCell className="text-right">{team.riddlesSolved}</TableCell>
-                <TableCell className="text-right font-bold text-lg">{team.score}</TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </Card>

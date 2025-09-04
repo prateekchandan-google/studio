@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { puzzles, teams } from '@/lib/data';
-import type { Puzzle } from '@/lib/types';
+import type { Puzzle, Team } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,17 +12,16 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Lightbulb, SkipForward, Timer, Send, Info } from 'lucide-react';
+import { Lightbulb, SkipForward, Timer, Send, Info, Frown } from 'lucide-react';
 
 const HINT_TIME = 5 * 60; // 5 minutes in seconds
 const SKIP_TIME = 10 * 60; // 10 minutes in seconds
 const PUZZLE_DURATION = 15 * 60; // 15 minutes in seconds
 
 export default function GamePage({ params }: { params: { teamId: string } }) {
-  // For this demo, we'll hardcode to the first team.
   // In a real app, you'd fetch team data based on params.teamId
-  const [team, setTeam] = useState(teams[0]); 
-  const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle>(puzzles[team.currentPuzzleIndex]);
+  const [team, setTeam] = useState<Team | undefined>(teams.find(t => t.id.toLowerCase().startsWith(params.teamId.toLowerCase()))); 
+  const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle | undefined>(team ? puzzles[team.currentPuzzleIndex] : undefined);
   const [timeLeft, setTimeLeft] = useState(PUZZLE_DURATION);
   const [isPaused, setIsPaused] = useState(false);
   const [showHint, setShowHint] = useState(false);
@@ -29,6 +29,8 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    if(!team) return;
+
     if (isPaused) return;
 
     if (timeLeft <= 0) {
@@ -38,6 +40,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
         variant: 'destructive',
       });
       // Handle skipping automatically
+      handleSkip();
       return;
     }
 
@@ -46,11 +49,12 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, isPaused, toast]);
+  }, [timeLeft, isPaused, toast, team]);
 
   const handleHint = () => {
+    if (!team) return;
     setShowHint(true);
-    setTeam(t => ({...t, score: t.score - 5}));
+    setTeam(t => t ? ({...t, score: t.score - 5}) : undefined);
     toast({
       title: 'Hint Unlocked!',
       description: '5 points have been deducted.',
@@ -58,8 +62,9 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   };
   
   const handleSkip = () => {
+    if (!team) return;
       const nextPuzzleIndex = (team.currentPuzzleIndex + 1) % puzzles.length;
-      setTeam(t => ({...t, currentPuzzleIndex: nextPuzzleIndex}));
+      setTeam(t => t ? ({...t, currentPuzzleIndex: nextPuzzleIndex}) : undefined);
       setCurrentPuzzle(puzzles[nextPuzzleIndex]);
       setTimeLeft(PUZZLE_DURATION);
       setShowHint(false);
@@ -83,6 +88,32 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     const secs = seconds % 60;
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  if (!team || !currentPuzzle) {
+    return (
+        <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
+          <Card className="w-full max-w-md text-center">
+            <CardHeader>
+                <div className="mx-auto bg-destructive/10 p-3 rounded-full mb-4 w-fit">
+                    <Frown className="w-8 h-8 text-destructive" />
+                </div>
+              <CardTitle className="font-headline text-2xl">Team Not Found</CardTitle>
+              <CardDescription>
+                We couldn't find a team with that code. Please check your code and try again.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="flex-col gap-4">
+              <Button asChild className="w-full">
+                <Link href="/">Try Again</Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/register">Register a New Team</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+    );
+  }
 
   const canShowHint = timeLeft <= PUZZLE_DURATION - HINT_TIME;
   const canSkip = timeLeft <= PUZZLE_DURATION - SKIP_TIME;
