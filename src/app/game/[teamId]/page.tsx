@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { puzzles, teams } from '@/lib/data';
+import { puzzles } from '@/lib/data';
 import type { Puzzle, Team } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,14 +19,27 @@ const SKIP_TIME = 10 * 60; // 10 minutes in seconds
 const PUZZLE_DURATION = 15 * 60; // 15 minutes in seconds
 
 export default function GamePage({ params }: { params: { teamId: string } }) {
-  // In a real app, you'd fetch team data based on params.teamId
-  const [team, setTeam] = useState<Team | undefined>(teams.find(t => t.id.toLowerCase().startsWith(params.teamId.toLowerCase()))); 
-  const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle | undefined>(team ? puzzles[team.currentPuzzleIndex] : undefined);
+  const [team, setTeam] = useState<Team | undefined>();
+  const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle | undefined>();
   const [timeLeft, setTimeLeft] = useState(PUZZLE_DURATION);
   const [isPaused, setIsPaused] = useState(false);
   const [showHint, setShowHint] = useState(false);
   
   const { toast } = useToast();
+
+  useEffect(() => {
+    // In a real app, you'd fetch team data. For this demo, we use localStorage.
+    try {
+        const storedTeams: Team[] = JSON.parse(localStorage.getItem('treasure-hunt-teams') || '[]');
+        const foundTeam = storedTeams.find(t => t.id.toLowerCase() === params.teamId.toLowerCase());
+        if (foundTeam) {
+            setTeam(foundTeam);
+            setCurrentPuzzle(puzzles[foundTeam.currentPuzzleIndex]);
+        }
+    } catch (error) {
+        console.error("Failed to retrieve teams from localStorage", error);
+    }
+  }, [params.teamId]);
 
   useEffect(() => {
     if(!team) return;
@@ -39,7 +52,6 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
         description: "Moving to the next puzzle automatically.",
         variant: 'destructive',
       });
-      // Handle skipping automatically
       handleSkip();
       return;
     }
@@ -99,7 +111,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
                 </div>
               <CardTitle className="font-headline text-2xl">Team Not Found</CardTitle>
               <CardDescription>
-                We couldn't find a team with that code. Please check your code and try again.
+                We couldn't find a team with that code. Please check your code and try again, or register a new team.
               </CardDescription>
             </CardHeader>
             <CardFooter className="flex-col gap-4">

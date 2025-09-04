@@ -1,4 +1,6 @@
+"use client";
 
+import { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -7,12 +9,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { teams as allTeams } from "@/lib/data";
+import type { Team } from "@/lib/types";
 import { Trophy, ShieldX } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ScoreboardPage() {
-  const sortedTeams = [...allTeams].sort((a, b) => b.score - a.score);
+  const [teams, setTeams] = useState<Team[]>([]);
+  
+  useEffect(() => {
+    // In a real app, you would fetch this data from a server.
+    // For this demo, we retrieve it from localStorage.
+    try {
+        const storedTeams: Team[] = JSON.parse(localStorage.getItem('treasure-hunt-teams') || '[]');
+        setTeams(storedTeams);
+    } catch (error) {
+        console.error("Failed to retrieve teams from localStorage", error);
+        setTeams([]);
+    }
+  }, []);
+
+  const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
 
   const getRankColor = (rank: number) => {
     switch (rank) {
@@ -37,7 +53,7 @@ export default function ScoreboardPage() {
     }
   }
 
-  const housePoints = allTeams.reduce((acc, team) => {
+  const housePoints = teams.reduce((acc, team) => {
     if (!acc[team.house]) {
         acc[team.house] = 0;
     }

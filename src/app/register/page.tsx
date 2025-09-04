@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { UserPlus, Users, X, Copy, Check, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import type { Team } from '@/lib/types';
 
 const houseNames = ["Halwa", "Chamcham", "Jalebi", "Ladoo"] as const;
 
@@ -43,9 +44,32 @@ export default function RegistrationPage() {
   });
 
   const onSubmit = (data: RegistrationFormValues) => {
-    console.log('Team Registered:', data);
-    // In a real app, you would save this to a database.
-    const newSecretCode = `${data.houseName.toLowerCase()}-${Math.random().toString(36).substring(2, 8)}`;
+    // In a real app, this would be saved to a database.
+    // For this demo, we'll use localStorage.
+    const teamId = data.houseName.toLowerCase();
+    const teamName = `${data.houseName} ${data.members[0].name.split(' ')[0]}'s Crew`;
+
+    const newTeam: Team = {
+      id: teamId,
+      name: teamName,
+      house: data.houseName,
+      score: 100,
+      riddlesSolved: 0,
+      currentPuzzleIndex: 0,
+    };
+    
+    // Store in localStorage
+    try {
+      const existingTeams = JSON.parse(localStorage.getItem('treasure-hunt-teams') || '[]');
+      // To keep it simple for the demo, we'll overwrite if the house has already registered.
+      const otherTeams = existingTeams.filter((t: Team) => t.id !== newTeam.id);
+      const updatedTeams = [...otherTeams, newTeam];
+      localStorage.setItem('treasure-hunt-teams', JSON.stringify(updatedTeams));
+    } catch (error) {
+        console.error("Could not save team to localStorage", error);
+    }
+
+    const newSecretCode = `${teamId}-${Math.random().toString(36).substring(2, 8)}`;
     setSecretCode(newSecretCode);
   };
 
