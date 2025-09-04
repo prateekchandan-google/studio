@@ -30,6 +30,7 @@
     --chart-5: 30 30% 60%;
     --radius: 0.5rem;
   }
+ 
   .dark {
     --background: 30 10% 10%; /* Darkest Brown */
     --foreground: 30 15% 85%;
