@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { doc, onSnapshot, collection, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Puzzle, Team } from '@/lib/types';
@@ -24,8 +24,9 @@ const HINT_TIME = 5 * 60; // 5 minutes in seconds
 const SKIP_TIME = 10 * 60; // 10 minutes in seconds
 const PUZZLE_DURATION = 15 * 60; // 15 minutes in seconds
 
-export default function GamePage({ params }: { params: { teamId: string } }) {
-  const teamId = params.teamId;
+export default function GamePage() {
+  const params = useParams();
+  const teamId = params.teamId as string;
   const router = useRouter();
   const [team, setTeam] = useState<Team | undefined>();
   const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
@@ -53,10 +54,16 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
         setPuzzles(puzzlesData);
     }, (error) => {
       console.error("Error fetching puzzles: ", error);
+      toast({
+            title: "Error",
+            description: "Could not load puzzle data.",
+            variant: "destructive"
+        });
       setIsLoading(false);
     });
     
     return () => unsubscribePuzzles();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -109,7 +116,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
 
 
   useEffect(() => {
-    if(!team || isPaused) return;
+    if(!team || isPaused || isLoading) return;
 
     if (timeLeft <= 0) {
       toast({
@@ -126,7 +133,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, isPaused, team]);
+  }, [timeLeft, isPaused, team, isLoading]);
 
   const handleHint = () => {
     if (!team) return;
@@ -348,5 +355,3 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     </div>
   );
 }
-
-    
