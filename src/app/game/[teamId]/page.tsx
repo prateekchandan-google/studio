@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut } from 'lucide-react';
+import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Wrench } from 'lucide-react';
 import QRCode from "react-qr-code";
 
 
@@ -37,6 +37,8 @@ export default function GamePage() {
   const [loginUrl, setLoginUrl] = useState('');
   const [hasCopied, setHasCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [puzzlesLoaded, setPuzzlesLoaded] = useState(false);
+  const [teamLoaded, setTeamLoaded] = useState(false);
   const [playerName, setPlayerName] = useState<string | null>(null);
 
   const { toast } = useToast();
@@ -48,12 +50,11 @@ export default function GamePage() {
   };
   
   useEffect(() => {
-    console.log("GAME_PAGE: Fetching puzzles...");
     const puzzlesQuery = query(collection(db, 'puzzles'), orderBy('title', 'asc'));
     const unsubscribePuzzles = onSnapshot(puzzlesQuery, (snapshot) => {
         const puzzlesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
         setPuzzles(puzzlesData);
-        console.log("GAME_PAGE: Puzzles loaded:", puzzlesData.length);
+        setPuzzlesLoaded(true);
     }, (error) => {
       console.error("Error fetching puzzles: ", error);
       toast({
@@ -61,7 +62,7 @@ export default function GamePage() {
             description: "Could not load puzzle data.",
             variant: "destructive"
         });
-      setIsLoading(false);
+      setPuzzlesLoaded(true);
     });
     
     return () => unsubscribePuzzles();
@@ -70,12 +71,10 @@ export default function GamePage() {
 
   useEffect(() => {
     if (!teamId) {
-      console.log("GAME_PAGE: No teamId found, stopping.");
-      setIsLoading(false);
+      setTeamLoaded(true);
       return;
     }
     
-    console.log(`GAME_PAGE: Setting up listener for teamId: ${teamId}`);
     setPlayerName(localStorage.getItem(`pathfinder-player-${teamId}`));
 
     const teamDocRef = doc(db, 'teams', teamId);
@@ -83,12 +82,11 @@ export default function GamePage() {
       if (doc.exists()) {
         const teamData = { id: doc.id, ...doc.data() } as Team;
         setTeam(teamData);
-        console.log("GAME_PAGE: Team data updated:", teamData.name);
         if (teamData.secretCode && typeof window !== 'undefined') {
             setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(teamData.secretCode)}`);
         }
       } else {
-        console.log("GAME_PAGE: Team not found, exiting game.");
+        setTeam(undefined); // Team deleted or doesn't exist
         toast({
             title: "Team Not Found",
             description: "Your team may have been removed by an admin. You are being logged out.",
@@ -97,6 +95,7 @@ export default function GamePage() {
         });
         handleExitGame();
       }
+      setTeamLoaded(true);
     }, (error) => {
         console.error("Error fetching team:", error);
         toast({
@@ -112,14 +111,14 @@ export default function GamePage() {
   }, [teamId]);
 
   useEffect(() => {
-    console.log(`GAME_PAGE: Checking if game can start. Puzzles: ${puzzles.length}, Team: ${!!team}`);
+    if(puzzlesLoaded && teamLoaded) {
+        setIsLoading(false);
+    }
+  }, [puzzlesLoaded, teamLoaded])
+
+  useEffect(() => {
     if (puzzles.length > 0 && team !== undefined) {
-      if (team) {
-        console.log(`GAME_PAGE: Setting current puzzle index: ${team.currentPuzzleIndex}`);
-        setCurrentPuzzle(puzzles[team.currentPuzzleIndex]);
-      }
-      console.log("GAME_PAGE: All data loaded, setting isLoading to false.");
-      setIsLoading(false);
+      setCurrentPuzzle(puzzles[team.currentPuzzleIndex]);
     }
   }, [team, puzzles]);
 
@@ -203,7 +202,7 @@ export default function GamePage() {
   }
 
 
-  if (!team || !currentPuzzle) {
+  if (!team) {
     return (
         <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
           <Card className="w-full max-w-md text-center">
@@ -227,6 +226,38 @@ export default function GamePage() {
           </Card>
         </div>
     );
+  }
+
+  if (puzzles.length === 0) {
+    return (
+        <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
+          <Card className="w-full max-w-md text-center">
+            <CardHeader>
+                <div className="mx-auto bg-accent/10 p-3 rounded-full mb-4 w-fit">
+                    <Wrench className="w-8 h-8 text-accent" />
+                </div>
+              <CardTitle className="font-headline text-2xl">Game Not Ready</CardTitle>
+              <CardDescription>
+                The Treasure Hunt is not set up yet. An admin needs to add puzzles before the game can begin.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="flex-col gap-4">
+              <Button onClick={handleExitGame} className="w-full">
+                <LogOut className="mr-2 h-4 w-4" /> Go to Homepage
+              </Button>
+              <p className="text-xs text-muted-foreground">Admins can add puzzles <Link href="/admin/puzzles" className="underline">here</Link>.</p>
+            </CardFooter>
+          </Card>
+        </div>
+    );
+  }
+  
+  if (!currentPuzzle) {
+     return (
+        <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
+            <Loader className="w-12 h-12 animate-spin text-primary" />
+        </div>
+    )
   }
 
   const canShowHint = timeLeft <= PUZZLE_DURATION - HINT_TIME;
