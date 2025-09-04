@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Team } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -16,13 +16,14 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Edit, Trash2, Users, Loader, X } from 'lucide-react';
+import { Edit, Trash2, Users, Loader, X, Award } from 'lucide-react';
 
 const houseNames = ["Halwa", "Chamcham", "Jalebi", "Ladoo"] as const;
 
 const teamEditSchema = z.object({
   name: z.string().min(3, 'Team name must be at least 3 characters.'),
   house: z.enum(houseNames, { required_error: 'Please select a house.' }),
+  bonusScore: z.coerce.number().int().optional(),
 });
 
 type TeamEditFormValues = z.infer<typeof teamEditSchema>;
@@ -40,9 +41,9 @@ export default function TeamManagementPage() {
   
   useEffect(() => {
     if (editingTeam) {
-      form.reset({ name: editingTeam.name, house: editingTeam.house });
+      form.reset({ name: editingTeam.name, house: editingTeam.house, bonusScore: 0 });
     } else {
-      form.reset({ name: '', house: undefined });
+      form.reset({ name: '', house: undefined, bonusScore: 0 });
     }
   }, [editingTeam, form]);
 
@@ -85,8 +86,19 @@ export default function TeamManagementPage() {
     setIsSubmitting(true);
     try {
       const teamRef = doc(db, 'teams', editingTeam.id);
-      await updateDoc(teamRef, { name: data.name, house: data.house });
-      toast({ title: 'Team Updated', description: `"${data.name}" has been successfully updated.` });
+      
+      const updateData: any = {
+        name: data.name,
+        house: data.house,
+      };
+
+      if (data.bonusScore) {
+          updateData.score = increment(data.bonusScore);
+      }
+
+      await updateDoc(teamRef, updateData);
+      
+      toast({ title: 'Team Updated', description: `"${data.name}" has been successfully updated.` + (data.bonusScore ? ` ${data.bonusScore} bonus points awarded.` : '')});
       setEditingTeam(null);
     } catch (error) {
       console.error('Failed to update team', error);
@@ -134,37 +146,52 @@ export default function TeamManagementPage() {
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardContent className="space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Team Name</FormLabel>
-                                <FormControl>
-                                <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="house"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>House</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Team Name</FormLabel>
                                     <FormControl>
-                                        <SelectTrigger>
-                                        <SelectValue placeholder="Select a house" />
-                                        </SelectTrigger>
+                                    <Input {...field} />
                                     </FormControl>
-                                    <SelectContent>
-                                        {houseNames.map(house => (
-                                        <SelectItem key={house} value={house}>{house}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="house"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>House</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                            <SelectValue placeholder="Select a house" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {houseNames.map(house => (
+                                            <SelectItem key={house} value={house}>{house}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                         <FormField
+                            control={form.control}
+                            name="bonusScore"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Award Bonus Score</FormLabel>
+                                <FormControl>
+                                <Input type="number" placeholder="Enter points to add to the current score" {...field} />
+                                </FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}
@@ -211,7 +238,10 @@ export default function TeamManagementPage() {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center">
-                    Loading teams...
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader className="w-5 h-5 animate-spin" />
+                      Loading teams...
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -267,3 +297,5 @@ export default function TeamManagementPage() {
     </div>
   );
 }
+
+    
