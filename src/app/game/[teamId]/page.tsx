@@ -25,7 +25,7 @@ const SKIP_TIME = 10 * 60; // 10 minutes in seconds
 const PUZZLE_DURATION = 15 * 60; // 15 minutes in seconds
 
 export default function GamePage({ params }: { params: { teamId: string } }) {
-  const { teamId } = params;
+  const teamId = params.teamId;
   const router = useRouter();
   const [team, setTeam] = useState<Team | undefined>();
   const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
@@ -72,7 +72,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
       if (doc.exists()) {
         const teamData = { id: doc.id, ...doc.data() } as Team;
         setTeam(teamData);
-        if (teamData.secretCode) {
+        if (teamData.secretCode && typeof window !== 'undefined') {
             setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(teamData.secretCode)}`);
         }
       } else {
@@ -99,8 +99,10 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   }, [teamId]);
 
   useEffect(() => {
-    if (team && puzzles.length > 0) {
-      setCurrentPuzzle(puzzles[team.currentPuzzleIndex]);
+    if (puzzles.length > 0 && team !== undefined) {
+      if (team) {
+        setCurrentPuzzle(puzzles[team.currentPuzzleIndex]);
+      }
       setIsLoading(false);
     }
   }, [team, puzzles]);
@@ -346,3 +348,5 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     </div>
   );
 }
+
+    
