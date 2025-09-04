@@ -9,13 +9,22 @@ import { Logo } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { href: "/", label: "Game" },
+  { href: "/", label: "Start Game" },
+  { href: "/register", label: "Register" },
   { href: "/scoreboard", label: "Scoreboard" },
   { href: "/admin", label: "Admin" },
 ];
 
 export function Header() {
   const pathname = usePathname();
+
+  const getLinkClass = (href: string) => {
+    // Special handling for game routes
+    if (href === "/" && (pathname.startsWith('/game') || pathname === '/')) {
+        return "text-foreground";
+    }
+    return pathname === href ? "text-foreground" : "text-foreground/60";
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -34,7 +43,7 @@ export function Header() {
                 href={link.href}
                 className={cn(
                   "transition-colors hover:text-foreground/80",
-                  pathname === link.href ? "text-foreground" : "text-foreground/60"
+                  getLinkClass(link.href)
                 )}
               >
                 {link.label}
@@ -63,7 +72,7 @@ export function Header() {
                     href={link.href}
                     className={cn(
                       "flex items-center px-4 transition-colors hover:text-foreground/80",
-                       pathname === link.href ? "text-foreground" : "text-foreground/60"
+                       getLinkClass(link.href)
                     )}
                   >
                     {link.label}
