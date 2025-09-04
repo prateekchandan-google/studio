@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
@@ -16,7 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Edit, Trash2, Users, Loader, X, Award } from 'lucide-react';
+import { Edit, Trash2, Users, Loader, X, UserPlus } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
 const houseNames = ["Halwa", "Chamcham", "Jalebi", "Ladoo"] as const;
 
@@ -24,6 +25,9 @@ const teamEditSchema = z.object({
   name: z.string().min(3, 'Team name must be at least 3 characters.'),
   house: z.enum(houseNames, { required_error: 'Please select a house.' }),
   bonusScore: z.coerce.number().int().optional(),
+  members: z.array(z.object({ name: z.string().min(1, 'Member name cannot be empty.') }))
+    .min(1, 'A team must have at least 1 member.')
+    .max(7, 'A maximum of 7 members is allowed.'),
 });
 
 type TeamEditFormValues = z.infer<typeof teamEditSchema>;
@@ -38,12 +42,22 @@ export default function TeamManagementPage() {
   const form = useForm<TeamEditFormValues>({
     resolver: zodResolver(teamEditSchema),
   });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "members",
+  });
   
   useEffect(() => {
     if (editingTeam) {
-      form.reset({ name: editingTeam.name, house: editingTeam.house, bonusScore: 0 });
+      form.reset({ 
+        name: editingTeam.name, 
+        house: editingTeam.house, 
+        bonusScore: 0,
+        members: editingTeam.members.map(name => ({ name })),
+      });
     } else {
-      form.reset({ name: '', house: undefined, bonusScore: 0 });
+      form.reset({ name: '', house: undefined, bonusScore: 0, members: [] });
     }
   }, [editingTeam, form]);
 
@@ -90,6 +104,7 @@ export default function TeamManagementPage() {
       const updateData: any = {
         name: data.name,
         house: data.house,
+        members: data.members.map(m => m.name),
       };
 
       if (data.bonusScore) {
@@ -140,12 +155,12 @@ export default function TeamManagementPage() {
                     Edit Team: {editingTeam.name}
                 </CardTitle>
                 <CardDescription>
-                    Modify the details for this team. Member management coming soon.
+                    Modify the details for this team.
                 </CardDescription>
             </CardHeader>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
                         <div className="grid md:grid-cols-2 gap-4">
                             <FormField
                                 control={form.control}
@@ -196,6 +211,40 @@ export default function TeamManagementPage() {
                             </FormItem>
                             )}
                         />
+                        <div className="space-y-4">
+                          <Label>Team Members ({fields.length}/7)</Label>
+                          {fields.map((field, index) => (
+                            <FormField
+                              key={field.id}
+                              control={form.control}
+                              name={`members.${index}.name`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex items-center gap-2">
+                                    <FormControl>
+                                      <Input placeholder={`Member ${index + 1} Name`} {...field} disabled={isSubmitting}/>
+                                    </FormControl>
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={isSubmitting || fields.length <= 1}>
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          ))}
+                          {form.formState.errors.members && (fields.length < 1 || fields.length > 7) && (
+                              <p className="text-sm font-medium text-destructive">
+                                  {form.formState.errors.members.message}
+                              </p>
+                          )}
+                          {fields.length < 7 && (
+                            <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '' })} disabled={isSubmitting}>
+                              <UserPlus className="mr-2 h-4 w-4" />
+                              Add Member
+                            </Button>
+                          )}
+                        </div>
                     </CardContent>
                     <CardFooter className="flex gap-2 justify-end">
                         <Button type="button" variant="ghost" onClick={handleCancelEdit}>
