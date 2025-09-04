@@ -235,7 +235,12 @@ export default function TeamManagementPage() {
                           ))}
                           {form.formState.errors.members && (fields.length < 1 || fields.length > 7) && (
                               <p className="text-sm font-medium text-destructive">
-                                  {form.formState.errors.members.message}
+                                  {form.formState.errors.members?.message}
+                              </p>
+                          )}
+                           {form.formState.errors.members?.root && (
+                              <p className="text-sm font-medium text-destructive">
+                                  {form.formState.errors.members.root.message}
                               </p>
                           )}
                           {fields.length < 7 && (
@@ -346,3 +351,5 @@ export default function TeamManagementPage() {
     </div>
   );
 }
+
+    
