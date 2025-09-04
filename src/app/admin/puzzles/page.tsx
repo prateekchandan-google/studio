@@ -267,7 +267,7 @@ export default function PuzzleManagementPage() {
                     <AlertTitle>No Puzzles Found</AlertTitle>
                     <AlertDescription>
                         There are no puzzles in the database. Use the form above to create one.
-                    </d_AlertDescription>
+                    </AlertDescription>
                 </Alert>
             )}
         </CardContent>
