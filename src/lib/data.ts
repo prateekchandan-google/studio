@@ -32,17 +32,18 @@ export const puzzles: Puzzle[] = [
 ];
 
 export const teams: Team[] = [
-  { id: 'T1', name: 'Gryffindor Lions', house: 'Gryffindor', score: 100, riddlesSolved: 2, currentPuzzleIndex: 2 },
-  { id: 'T2', name: 'Slytherin Serpents', house: 'Slytherin', score: 125, riddlesSolved: 3, currentPuzzleIndex: 3 },
-  { id: 'T3', name: 'Ravenclaw Eagles', house: 'Ravenclaw', score: 95, riddlesSolved: 2, currentPuzzleIndex: 2 },
-  { id: 'T4', name: 'Hufflepuff Badgers', house: 'Hufflepuff', score: 80, riddlesSolved: 1, currentPuzzleIndex: 1 },
+  { id: 'T1', name: 'The Halwa Heroes', house: 'Halwa', score: 100, riddlesSolved: 2, currentPuzzleIndex: 2 },
+  { id: 'T2', name: 'Chamcham Champs', house: 'Chamcham', score: 125, riddlesSolved: 3, currentPuzzleIndex: 3 },
+  { id: 'T3', name: 'Jalebi Giants', house: 'Jalebi', score: 95, riddlesSolved: 2, currentPuzzleIndex: 2 },
+  { id: 'T4', name: 'Ladoo Legends', house: 'Ladoo', score: 80, riddlesSolved: 1, currentPuzzleIndex: 1 },
+  { id: 'T5', name: 'Halwa Hustlers', house: 'Halwa', score: 50, riddlesSolved: 1, currentPuzzleIndex: 1 },
 ];
 
 export const submissions: Submission[] = [
     {
         id: 'S1',
         teamId: 'T3',
-        teamName: 'Ravenclaw Eagles',
+        teamName: 'Jalebi Giants',
         puzzleId: 2,
         puzzleTitle: 'The Merchant\'s Dilemma',
         textSubmission: 'We think the answer is 11 cartons. We used algebra to solve it. 7 large and 4 small.',
@@ -53,7 +54,7 @@ export const submissions: Submission[] = [
     {
         id: 'S2',
         teamId: 'T4',
-        teamName: 'Hufflepuff Badgers',
+        teamName: 'Ladoo Legends',
         puzzleId: 1,
         puzzleTitle: 'The Echoing Cave',
         textSubmission: 'Is it a river? It has a riverbed!',

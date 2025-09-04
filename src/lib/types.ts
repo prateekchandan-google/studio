@@ -1,7 +1,7 @@
 export interface Team {
   id: string;
   name: string;
-  house: 'Gryffindor' | 'Hufflepuff' | 'Ravenclaw' | 'Slytherin' | 'Halwa' | 'Chamcham' | 'Jalebi' | 'Ladoo';
+  house: 'Halwa' | 'Chamcham' | 'Jalebi' | 'Ladoo';
   score: number;
   riddlesSolved: number;
   currentPuzzleIndex: number;
