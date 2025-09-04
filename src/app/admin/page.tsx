@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { submissions as initialSubmissions } from "@/lib/data";
 import type { Submission } from "@/lib/types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -17,12 +18,28 @@ type SubmissionWithAI = Submission & {
 };
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
+  const [isVerified, setIsVerified] = useState(false);
   const [submissions, setSubmissions] = useState<SubmissionWithAI[]>([]);
 
   useEffect(() => {
-    // In a real app, you would fetch this from Firestore
-    setSubmissions(initialSubmissions);
-  }, [])
+    // In a real app, you'd verify a JWT or session cookie.
+    if (typeof window !== 'undefined') {
+      const isAuthenticated = localStorage.getItem('pathfinder-admin-auth') === 'true';
+      if (!isAuthenticated) {
+        router.replace('/admin/login');
+      } else {
+        setIsVerified(true);
+      }
+    }
+  }, [router]);
+  
+  useEffect(() => {
+    if(isVerified) {
+      // In a real app, you would fetch this from Firestore
+      setSubmissions(initialSubmissions);
+    }
+  }, [isVerified])
 
   const handleDecision = (submissionId: string, decision: "approved" | "rejected") => {
     setSubmissions((prev) => prev.filter((sub) => sub.id !== submissionId));
@@ -44,6 +61,11 @@ export default function AdminDashboardPage() {
         : s
     ));
   };
+
+  if (!isVerified) {
+    // You can show a loader here. For now, it's just a blank screen to avoid flash of content.
+    return null;
+  }
 
   return (
     <div className="container mx-auto py-8 px-4">
