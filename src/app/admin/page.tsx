@@ -7,7 +7,7 @@ import type { Submission } from "@/lib/types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Bot, Loader, UserCircle } from "lucide-react";
+import { Check, X, Bot, Loader, UserCircle, LogOut } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { analyzeSubmission } from "@/ai/flows/submission-analyzer";
 
@@ -62,6 +62,11 @@ export default function AdminDashboardPage() {
     ));
   };
 
+  const handleExitAdmin = () => {
+    localStorage.removeItem('pathfinder-admin-auth');
+    router.push('/admin/login');
+  };
+
   if (!isVerified) {
     // You can show a loader here. For now, it's just a blank screen to avoid flash of content.
     return null;
@@ -69,13 +74,19 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <header className="mb-8">
-        <h1 className="text-4xl font-headline font-bold tracking-tight lg:text-5xl">
-          Submission Review
-        </h1>
-        <p className="mt-2 text-lg text-muted-foreground">
-          Approve or reject team submissions in real-time.
-        </p>
+      <header className="mb-8 flex justify-between items-center">
+        <div>
+            <h1 className="text-4xl font-headline font-bold tracking-tight lg:text-5xl">
+            Submission Review
+            </h1>
+            <p className="mt-2 text-lg text-muted-foreground">
+            Approve or reject team submissions in real-time.
+            </p>
+        </div>
+        <Button variant="outline" onClick={handleExitAdmin}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Exit as Admin
+        </Button>
       </header>
 
       {submissions.length > 0 ? (
