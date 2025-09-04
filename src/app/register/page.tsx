@@ -261,7 +261,16 @@ export default function RegistrationPage() {
             </CardContent>
             <CardFooter>
               <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Registering...' : <><Users className="mr-2 h-4 w-4" /> Register Team & Get Code</>}
+                {isSubmitting ? (
+                    <>
+                        <Loader className="mr-2 h-4 w-4 animate-spin" />
+                        Registering...
+                    </>
+                ) : (
+                    <>
+                        <Users className="mr-2 h-4 w-4" /> Register Team & Get Code
+                    </>
+                )}
               </Button>
             </CardFooter>
           </form>

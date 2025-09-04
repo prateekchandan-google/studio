@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LogIn, Key, Users, UserCheck } from 'lucide-react';
+import { LogIn, Key, Users, UserCheck, Loader } from 'lucide-react';
 import Link from 'next/link';
 
 const loginSchema = z.object({
@@ -170,7 +170,16 @@ export default function StartGamePage() {
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
               <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Logging in...' : <><LogIn className="mr-2 h-4 w-4" /> Enter Challenge</>}
+                {isSubmitting ? (
+                    <>
+                        <Loader className="mr-2 h-4 w-4 animate-spin" />
+                        Logging in...
+                    </>
+                ) : (
+                    <>
+                        <LogIn className="mr-2 h-4 w-4" /> Enter Challenge
+                    </>
+                )}
               </Button>
               <div className="text-center text-sm text-muted-foreground">
                 Don't have a code?{' '}
