@@ -1,23 +1,19 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { collection, addDoc, onSnapshot, query, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
-import type { Puzzle } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Loader, PlusCircle, Trash2, Edit, X } from 'lucide-react';
+import { Loader, PlusCircle } from 'lucide-react';
 
 const puzzleSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
@@ -29,10 +25,7 @@ const puzzleSchema = z.object({
 type PuzzleFormValues = z.infer<typeof puzzleSchema>;
 
 export default function PuzzleManagementPage() {
-  const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingPuzzle, setEditingPuzzle] = useState<Puzzle | null>(null);
   const { toast } = useToast();
 
   const form = useForm<PuzzleFormValues>({
@@ -45,71 +38,18 @@ export default function PuzzleManagementPage() {
     },
   });
 
-  useEffect(() => {
-    const puzzlesQuery = query(collection(db, 'puzzles'));
-
-    const unsubscribe = onSnapshot(puzzlesQuery, (snapshot) => {
-      const puzzlesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
-      setPuzzles(puzzlesData);
-      setIsLoading(false);
-    }, (error) => {
-      console.error('Failed to fetch puzzles from Firestore', error);
-      toast({
-        title: "Error Fetching Puzzles",
-        description: "Could not retrieve puzzle data. Please check your connection and Firestore security rules.",
-        variant: "destructive"
-      });
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [toast]);
-
-  useEffect(() => {
-    if (editingPuzzle) {
-      form.reset(editingPuzzle);
-    } else {
-      form.reset({ title: '', description: '', hint: '', solution: '' });
-    }
-  }, [editingPuzzle, form]);
-
   const onSubmit = async (data: PuzzleFormValues) => {
     setIsSubmitting(true);
     try {
-      if (editingPuzzle) {
-        const puzzleRef = doc(db, 'puzzles', editingPuzzle.id);
-        await updateDoc(puzzleRef, data);
-        toast({ title: 'Puzzle Updated', description: `"${data.title}" has been successfully updated.` });
-      } else {
-        await addDoc(collection(db, 'puzzles'), data);
-        toast({ title: 'Puzzle Created', description: `"${data.title}" has been successfully added.` });
-      }
-      setEditingPuzzle(null);
+      await addDoc(collection(db, 'puzzles'), data);
+      toast({ title: 'Puzzle Created', description: `"${data.title}" has been successfully added.` });
+      form.reset();
     } catch (error) {
       console.error('Failed to save puzzle', error);
       toast({ title: 'An Error Occurred', description: 'Could not save the puzzle. Please try again.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleDelete = async (puzzleId: string) => {
-    try {
-      await deleteDoc(doc(db, 'puzzles', puzzleId));
-      toast({ title: 'Puzzle Deleted', description: 'The puzzle has been successfully removed.' });
-    } catch (error) {
-      console.error('Failed to delete puzzle', error);
-      toast({ title: 'Deletion Failed', description: 'Could not delete the puzzle. Please try again.', variant: 'destructive' });
-    }
-  };
-
-  const handleEdit = (puzzle: Puzzle) => {
-    setEditingPuzzle(puzzle);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-  
-  const handleCancelEdit = () => {
-    setEditingPuzzle(null);
   };
 
   return (
@@ -119,18 +59,18 @@ export default function PuzzleManagementPage() {
           Puzzle Management
         </h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Create, edit, and manage puzzles for the treasure hunt.
+          Create puzzles for the treasure hunt.
         </p>
       </header>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            {editingPuzzle ? <Edit className="w-6 h-6"/> : <PlusCircle className="w-6 h-6"/>}
-            {editingPuzzle ? 'Edit Puzzle' : 'Create New Puzzle'}
+            <PlusCircle className="w-6 h-6"/>
+            Create New Puzzle
           </CardTitle>
           <CardDescription>
-            {editingPuzzle ? `You are currently editing "${editingPuzzle.title}".` : 'Fill out the form below to add a new puzzle to the game.'}
+            Fill out the form below to add a new puzzle to the game.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -189,98 +129,19 @@ export default function PuzzleManagementPage() {
                 )}
               />
             </CardContent>
-            <CardFooter className="flex gap-2 justify-end">
-              {editingPuzzle && (
-                <Button type="button" variant="ghost" onClick={handleCancelEdit}>
-                    <X className="mr-2 h-4 w-4" />
-                    Cancel Edit
-                </Button>
-              )}
+            <CardFooter className="flex justify-end">
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <Loader className="mr-2 h-4 w-4 animate-spin" />
-                ) : editingPuzzle ? (
-                  <Edit className="mr-2 h-4 w-4" />
                 ) : (
                   <PlusCircle className="mr-2 h-4 w-4" />
                 )}
-                {isSubmitting ? 'Saving...' : editingPuzzle ? 'Save Changes' : 'Create Puzzle'}
+                {isSubmitting ? 'Saving...' : 'Create Puzzle'}
               </Button>
             </CardFooter>
           </form>
         </Form>
       </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Existing Puzzles</CardTitle>
-          <CardDescription>
-            Here are all the puzzles currently in the game.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-            {isLoading ? (
-                <div className="flex items-center justify-center h-40">
-                    <Loader className="w-8 h-8 animate-spin text-primary"/>
-                    <p className="ml-4 text-muted-foreground">Loading puzzles...</p>
-                </div>
-            ) : puzzles.length > 0 ? (
-                <Accordion type="single" collapsible className="w-full">
-                    {puzzles.map(puzzle => (
-                        <AccordionItem value={puzzle.id} key={puzzle.id}>
-                            <AccordionTrigger className="font-headline text-lg hover:no-underline">
-                                <div className="flex items-center justify-between w-full pr-4">
-                                    <span>{puzzle.title}</span>
-                                    <div className="flex items-center gap-2">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEdit(puzzle); }}>
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    This action cannot be undone. This will permanently delete the puzzle
-                                                    "{puzzle.title}".
-                                                </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDelete(puzzle.id)}>
-                                                    Yes, delete it
-                                                </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </div>
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="space-y-2 pt-2 text-base">
-                               <p><strong className="font-semibold">Riddle:</strong> {puzzle.description}</p>
-                               <p><strong className="font-semibold">Hint:</strong> {puzzle.hint}</p>
-                               <p><strong className="font-semibold text-primary">Solution:</strong> {puzzle.solution}</p>
-                            </AccordionContent>
-                        </AccordionItem>
-                    ))}
-                </Accordion>
-            ) : (
-                <Alert>
-                    <AlertTitle>No Puzzles Found</AlertTitle>
-                    <AlertDescription>
-                        There are no puzzles in the database. Use the form above to create the first one.
-                    </AlertDescription>
-                </Alert>
-            )}
-        </CardContent>
-      </Card>
-
     </div>
   );
 }
-
-    
