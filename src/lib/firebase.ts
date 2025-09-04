@@ -4,14 +4,13 @@ import {getFirestore} from 'firebase/firestore';
 import {getAuth} from 'firebase/auth';
 
 // Your web app's Firebase configuration
-// IMPORTANT: Replace this with your actual Firebase config
 const firebaseConfig = {
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_AUTH_DOMAIN',
-  projectId: 'YOUR_PROJECT_ID',
-  storageBucket: 'YOUR_STORAGE_BUCKET',
-  messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-  appId: 'YOUR_APP_ID',
+  apiKey: "AIzaSyD_6j6rJypuTzhCO80OXkC8Fgj97XKiGow",
+  authDomain: "gtv-treasure-hunt-2025.firebaseapp.com",
+  projectId: "gtv-treasure-hunt-2025",
+  storageBucket: "gtv-treasure-hunt-2025.firebasestorage.app",
+  messagingSenderId: "806363809215",
+  appId: "1:806363809215:web:5ecad81315ebc2d58b4d0a"
 };
 
 // Initialize Firebase

@@ -2,6 +2,7 @@ export interface Team {
   id: string;
   name: string;
   house: 'Halwa' | 'Chamcham' | 'Jalebi' | 'Ladoo';
+  members: string[];
   score: number;
   riddlesSolved: number;
   currentPuzzleIndex: number;

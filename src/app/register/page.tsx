@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { UserPlus, Users, X, Copy, Check, ArrowRight } from 'lucide-react';
+import { UserPlus, Users, X, Copy, Check, ArrowRight, Bot } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { Team } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 const houseNames = ["Halwa", "Chamcham", "Jalebi", "Ladoo"] as const;
 
 const registrationSchema = z.object({
+  teamName: z.string().min(3, 'Team name must be at least 3 characters.'),
   houseName: z.enum(houseNames, { required_error: 'Please select a house.' }),
   members: z.array(z.object({ name: z.string().min(1, 'Member name cannot be empty.') }))
     .min(3, 'A minimum of 3 members is required.')
@@ -39,6 +40,7 @@ export default function RegistrationPage() {
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
+      teamName: '',
       members: [{ name: '' }, { name: '' }, { name: '' }],
     },
   });
@@ -47,17 +49,26 @@ export default function RegistrationPage() {
     control: form.control,
     name: "members",
   });
+  
+  const handleGenerateName = async () => {
+    // In a real app, this would call a Genkit flow
+    toast({ title: "Generating team name...", description: "Please wait a moment." });
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const suggestedName = `${form.getValues('houseName') || 'Awesome'} Adventurers`;
+    form.setValue('teamName', suggestedName);
+     toast({ title: "Name Suggested!", description: `How about "${suggestedName}"?` });
+  }
 
   const onSubmit = async (data: RegistrationFormValues) => {
     setIsSubmitting(true);
     const teamId = data.houseName.toLowerCase();
-    const teamName = `${data.houseName} ${data.members[0].name.split(' ')[0]}'s Crew`;
     const newSecretCode = `${teamId}-${Math.random().toString(36).substring(2, 8)}`;
 
     const newTeam: Team = {
       id: teamId,
-      name: teamName,
+      name: data.teamName,
       house: data.houseName,
+      members: data.members.map(m => m.name),
       score: 100,
       riddlesSolved: 0,
       currentPuzzleIndex: 0,
@@ -140,28 +151,49 @@ export default function RegistrationPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-6">
-              <FormField
-                control={form.control}
-                name="houseName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>House Name</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your house" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {houseNames.map(house => (
-                          <SelectItem key={house} value={house}>{house}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid md:grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="houseName"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>House Name</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="Select your house" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {houseNames.map(house => (
+                            <SelectItem key={house} value={house}>{house}</SelectItem>
+                            ))}
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="teamName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Team Name</FormLabel>
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input placeholder="The Seekers..." {...field} disabled={isSubmitting} />
+                        </FormControl>
+                        <Button type="button" variant="outline" size="icon" onClick={handleGenerateName} disabled={isSubmitting}>
+                           <Bot className="w-4 h-4" />
+                           <span className="sr-only">Generate Name</span>
+                        </Button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="space-y-4">
                 <Label>Team Members ({fields.length}/7)</Label>
