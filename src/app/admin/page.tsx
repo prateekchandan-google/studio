@@ -1,13 +1,13 @@
+
 "use client";
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { submissions as initialSubmissions } from "@/lib/data";
 import type { Submission } from "@/lib/types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Bot, Loader, UserCircle, LogOut } from "lucide-react";
+import { Check, X, Bot, Loader, UserCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { analyzeSubmission } from "@/ai/flows/submission-analyzer";
 
@@ -18,28 +18,12 @@ type SubmissionWithAI = Submission & {
 };
 
 export default function AdminDashboardPage() {
-  const router = useRouter();
-  const [isVerified, setIsVerified] = useState(false);
   const [submissions, setSubmissions] = useState<SubmissionWithAI[]>([]);
 
   useEffect(() => {
-    // In a real app, you'd verify a JWT or session cookie.
-    if (typeof window !== 'undefined') {
-      const isAuthenticated = localStorage.getItem('pathfinder-admin-auth') === 'true';
-      if (!isAuthenticated) {
-        router.replace('/admin/login');
-      } else {
-        setIsVerified(true);
-      }
-    }
-  }, [router]);
-  
-  useEffect(() => {
-    if(isVerified) {
-      // In a real app, you would fetch this from Firestore
-      setSubmissions(initialSubmissions.map(s => ({...s, submittedBy: s.submittedBy || 'Unknown Player'})));
-    }
-  }, [isVerified])
+    // In a real app, you would fetch this from Firestore
+    setSubmissions(initialSubmissions.map(s => ({...s, submittedBy: s.submittedBy || 'Unknown Player'})));
+  }, [])
 
   const handleDecision = (submissionId: string, decision: "approved" | "rejected") => {
     setSubmissions((prev) => prev.filter((sub) => sub.id !== submissionId));
@@ -62,19 +46,10 @@ export default function AdminDashboardPage() {
     ));
   };
 
-  const handleExitAdmin = () => {
-    localStorage.removeItem('pathfinder-admin-auth');
-    router.push('/admin/login');
-  };
-
-  if (!isVerified) {
-    // You can show a loader here. For now, it's just a blank screen to avoid flash of content.
-    return null;
-  }
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <header className="mb-8 flex justify-between items-center">
+      <header className="mb-8">
         <div>
             <h1 className="text-4xl font-headline font-bold tracking-tight lg:text-5xl">
             Submission Review
@@ -83,14 +58,10 @@ export default function AdminDashboardPage() {
             Approve or reject team submissions in real-time.
             </p>
         </div>
-        <Button variant="outline" onClick={handleExitAdmin}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Exit as Admin
-        </Button>
       </header>
 
       {submissions.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {submissions.map((submission) => (
             <Card key={submission.id} className="flex flex-col">
               <CardHeader>
