@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -49,6 +50,12 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     return () => unsubscribePuzzles();
   }, []);
 
+  const handleExitGame = () => {
+    localStorage.removeItem('pathfinder-active-teamId');
+    localStorage.removeItem(`pathfinder-player-${teamId}`);
+    router.push('/');
+  };
+
   useEffect(() => {
     if (!teamId || puzzles.length === 0) return;
     
@@ -59,13 +66,21 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
       if (doc.exists()) {
         const teamData = doc.data() as Team;
         setTeam(teamData);
-        setCurrentPuzzle(puzzles[teamData.currentPuzzleIndex]);
+        // This prevents a flicker of the old puzzle when a new one is selected
+        if (puzzles[teamData.currentPuzzleIndex]?.id !== currentPuzzle?.id) {
+            setCurrentPuzzle(puzzles[teamData.currentPuzzleIndex]);
+        }
         if (teamData.secretCode) {
             setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(teamData.secretCode)}`);
         }
       } else {
-        // Team not found
-        setTeam(undefined);
+        // Team not found, likely deleted by admin.
+        toast({
+            title: "Team Not Found",
+            description: "Your team has been removed by an admin. You are being logged out.",
+            variant: "destructive"
+        });
+        handleExitGame();
       }
       setIsLoading(false);
     }, (error) => {
@@ -74,7 +89,8 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     });
 
     return () => unsubscribeTeam();
-  }, [teamId, puzzles]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamId, puzzles, currentPuzzle]);
 
   useEffect(() => {
     if(!team) return;
@@ -146,12 +162,6 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
       setHasCopied(true);
       setTimeout(() => setHasCopied(false), 2000);
     }
-  };
-
-  const handleExitGame = () => {
-    localStorage.removeItem('pathfinder-active-teamId');
-    localStorage.removeItem(`pathfinder-player-${teamId}`);
-    router.push('/');
   };
   
   if (isLoading || puzzles.length === 0) {
@@ -324,3 +334,5 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     </div>
   );
 }
+
+    
