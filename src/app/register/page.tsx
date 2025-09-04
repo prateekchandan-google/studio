@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -39,13 +40,6 @@ export default function RegistrationPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  useEffect(() => {
-    const activeTeamId = localStorage.getItem('pathfinder-active-teamId');
-    if (activeTeamId) {
-      router.replace(`/game/${activeTeamId}`);
-    }
-  }, [router]);
-
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -31,13 +32,6 @@ export default function StartGamePage() {
   const [team, setTeam] = useState<Team | null>(null);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
 
-  useEffect(() => {
-    const activeTeamId = localStorage.getItem('pathfinder-active-teamId');
-    if (activeTeamId) {
-      router.replace(`/game/${activeTeamId}`);
-    }
-  }, [router]);
-
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -62,7 +56,7 @@ export default function StartGamePage() {
         const teamDoc = await getDoc(teamDocRef);
 
         if (teamDoc.exists()) {
-            const teamData = teamDoc.data() as Team;
+            const teamData = {id: teamDoc.id, ...teamDoc.data()} as Team;
             // The secret code is the ID, so if the doc exists, the code is valid.
             setTeam(teamData);
         } else {

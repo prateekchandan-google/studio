@@ -39,6 +39,12 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   const [playerName, setPlayerName] = useState<string | null>(null);
 
   const { toast } = useToast();
+
+  const handleExitGame = () => {
+    localStorage.removeItem('pathfinder-active-teamId');
+    localStorage.removeItem(`pathfinder-player-${teamId}`);
+    router.push('/');
+  };
   
   useEffect(() => {
     const puzzlesQuery = query(collection(db, 'puzzles'), orderBy('title', 'asc'));
@@ -50,21 +56,18 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     return () => unsubscribePuzzles();
   }, []);
 
-  const handleExitGame = () => {
-    localStorage.removeItem('pathfinder-active-teamId');
-    localStorage.removeItem(`pathfinder-player-${teamId}`);
-    router.push('/');
-  };
-
   useEffect(() => {
-    if (!teamId || puzzles.length === 0) return;
+    if (!teamId || puzzles.length === 0) {
+        if(puzzles.length > 0) setIsLoading(false);
+        return;
+    };
     
     setPlayerName(localStorage.getItem(`pathfinder-player-${teamId}`));
 
     const teamDocRef = doc(db, 'teams', teamId);
     const unsubscribeTeam = onSnapshot(teamDocRef, (doc) => {
       if (doc.exists()) {
-        const teamData = doc.data() as Team;
+        const teamData = { id: doc.id, ...doc.data() } as Team;
         setTeam(teamData);
         // This prevents a flicker of the old puzzle when a new one is selected
         if (puzzles[teamData.currentPuzzleIndex]?.id !== currentPuzzle?.id) {
@@ -77,20 +80,26 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
         // Team not found, likely deleted by admin.
         toast({
             title: "Team Not Found",
-            description: "Your team has been removed by an admin. You are being logged out.",
-            variant: "destructive"
+            description: "Your team may have been removed by an admin. You are being logged out.",
+            variant: "destructive",
+            duration: 5000,
         });
         handleExitGame();
       }
       setIsLoading(false);
     }, (error) => {
         console.error("Error fetching team:", error);
+        toast({
+            title: "Error",
+            description: "Could not load team data. Please try again.",
+            variant: "destructive"
+        });
         setIsLoading(false);
     });
 
     return () => unsubscribeTeam();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamId, puzzles, currentPuzzle]);
+  }, [teamId, puzzles]);
 
   useEffect(() => {
     if(!team) return;
@@ -164,7 +173,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     }
   };
   
-  if (isLoading || puzzles.length === 0) {
+  if (isLoading || (puzzles.length === 0 && teamId)) {
     return (
         <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
             <Loader className="w-12 h-12 animate-spin text-primary" />
@@ -334,5 +343,3 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     </div>
   );
 }
-
-    
