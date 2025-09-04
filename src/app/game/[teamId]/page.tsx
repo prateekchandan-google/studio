@@ -22,6 +22,7 @@ const SKIP_TIME = 10 * 60; // 10 minutes in seconds
 const PUZZLE_DURATION = 15 * 60; // 15 minutes in seconds
 
 export default function GamePage({ params }: { params: { teamId: string } }) {
+  const { teamId } = params;
   const [team, setTeam] = useState<Team | undefined>();
   const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle | undefined>();
   const [timeLeft, setTimeLeft] = useState(PUZZLE_DURATION);
@@ -37,11 +38,11 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     // In a real app, you'd fetch team data. For this demo, we use localStorage.
     try {
         const storedTeams: Team[] = JSON.parse(localStorage.getItem('treasure-hunt-teams') || '[]');
-        const foundTeam = storedTeams.find(t => t.id.toLowerCase() === params.teamId.toLowerCase());
+        const foundTeam = storedTeams.find(t => t.id.toLowerCase() === teamId.toLowerCase());
         if (foundTeam) {
             setTeam(foundTeam);
             setCurrentPuzzle(puzzles[foundTeam.currentPuzzleIndex]);
-            const storedCode = localStorage.getItem(`team-secret-${params.teamId}`);
+            const storedCode = localStorage.getItem(`team-secret-${teamId}`);
             if(storedCode) {
               setSecretCode(storedCode);
               setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(storedCode)}`);
@@ -50,7 +51,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     } catch (error) {
         console.error("Failed to retrieve teams from localStorage", error);
     }
-  }, [params.teamId]);
+  }, [teamId]);
 
   useEffect(() => {
     if(!team) return;
@@ -113,8 +114,8 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   };
 
   const copyToClipboard = () => {
-    if (secretCode) {
-      navigator.clipboard.writeText(secretCode);
+    if (loginUrl) {
+      navigator.clipboard.writeText(loginUrl);
       setHasCopied(true);
       setTimeout(() => setHasCopied(false), 2000);
     }
@@ -147,7 +148,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   }
 
   const canShowHint = timeLeft <= PUZZLE_DURATION - HINT_TIME;
-  const canSkip = timeLeft <= PUZZLE_DURATION - SKIP_IIME;
+  const canSkip = timeLeft <= PUZZLE_DURATION - SKIP_TIME;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -169,9 +170,9 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <Label htmlFor="secret-code-display">Your Secret Code</Label>
+                <Label htmlFor="secret-code-display">Your Team's Login URL</Label>
                 <div className="relative mt-1">
-                  <Input id="secret-code-display" readOnly value={secretCode} className="pr-10 font-mono tracking-wider"/>
+                  <Input id="secret-code-display" readOnly value={loginUrl} className="pr-10 font-mono tracking-wider"/>
                   <Button
                       variant="ghost"
                       size="icon"

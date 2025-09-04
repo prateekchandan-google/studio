@@ -35,13 +35,12 @@ export default function StartGamePage() {
   const onSubmit = (data: LoginFormValues) => {
     // In a real app, you would validate the secret code against a database.
     // For this demo, we'll use a simple check and route to a dynamic game page.
-    // We'll extract a teamId-like value from the code.
-    const storedCode = localStorage.getItem(`team-secret-${data.secretCode.split('-')[0]}`);
+    const teamId = data.secretCode.split('-')[0];
+    const storedCode = localStorage.getItem(`team-secret-${teamId}`);
     if (data.secretCode === storedCode) {
-      const teamId = data.secretCode.split('-')[0];
       router.push(`/game/${teamId}`);
     } else {
-      setError('Invalid secret code format.');
+      setError('Invalid secret code.');
     }
   };
 
