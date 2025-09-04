@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LogIn, Key, Users } from 'lucide-react';
+import { LogIn, Key, Users, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 
 const loginSchema = z.object({
@@ -28,6 +28,8 @@ export default function StartGamePage() {
   const searchParams = useSearchParams();
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [team, setTeam] = useState<Team | null>(null);
+  const [selectedMember, setSelectedMember] = useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -54,7 +56,7 @@ export default function StartGamePage() {
         if (teamDoc.exists()) {
             const teamData = teamDoc.data() as Team;
             if (teamData.secretCode === secretCode) {
-                router.push(`/game/${teamId}`);
+                setTeam(teamData);
             } else {
                 setError('Invalid secret code.');
             }
@@ -77,6 +79,55 @@ export default function StartGamePage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, form, router]);
+
+  const handleMemberSelectAndGo = () => {
+    if (team && selectedMember) {
+        localStorage.setItem(`pathfinder-player-${team.id}`, selectedMember);
+        router.push(`/game/${team.id}`);
+    } else {
+        setError("Please select a team member.");
+    }
+  }
+  
+  if (team) {
+    return (
+        <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
+            <Card className="w-full max-w-md">
+                <CardHeader className="text-center">
+                    <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
+                        <UserCheck className="w-8 h-8 text-primary" />
+                    </div>
+                    <CardTitle className="font-headline text-2xl">Welcome, {team.name}!</CardTitle>
+                    <CardDescription>Who is playing right now?</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-2">
+                        {team.members.map(member => (
+                            <Button 
+                                key={member}
+                                variant={selectedMember === member ? "default" : "outline"}
+                                onClick={() => setSelectedMember(member)}
+                                className="w-full"
+                            >
+                                {member}
+                            </Button>
+                        ))}
+                    </div>
+                    {error && (
+                        <Alert variant="destructive">
+                        <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
+                </CardContent>
+                <CardFooter>
+                    <Button onClick={handleMemberSelectAndGo} className="w-full" disabled={!selectedMember}>
+                        Let's Go!
+                    </Button>
+                </CardFooter>
+            </Card>
+        </div>
+    )
+  }
 
 
   return (

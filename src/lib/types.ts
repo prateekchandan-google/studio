@@ -27,4 +27,5 @@ export interface Submission {
   imageSubmissionUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
   timestamp: Date;
+  submittedBy?: string;
 }

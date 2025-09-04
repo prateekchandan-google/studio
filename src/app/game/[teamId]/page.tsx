@@ -15,7 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader } from 'lucide-react';
+import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle } from 'lucide-react';
 import QRCode from "react-qr-code";
 
 
@@ -33,11 +33,14 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   const [loginUrl, setLoginUrl] = useState('');
   const [hasCopied, setHasCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [playerName, setPlayerName] = useState<string | null>(null);
 
   const { toast } = useToast();
 
   useEffect(() => {
     if (!teamId) return;
+    
+    setPlayerName(localStorage.getItem(`pathfinder-player-${teamId}`));
 
     const teamDocRef = doc(db, 'teams', teamId);
     const unsubscribe = onSnapshot(teamDocRef, (doc) => {
@@ -115,6 +118,8 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
           title: 'Submission Received!',
           description: 'Your answer is now under review. The timer has been paused.',
       });
+      // Here you would create the submission object and save to firestore
+      // including the playerName state
   };
 
   const formatTime = (seconds: number) => {
@@ -171,46 +176,54 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-headline font-bold">{team.name}</h1>
           <p className="text-muted-foreground">House: {team.house} | Score: {team.score}</p>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline"><Share2 className="mr-2 h-4 w-4" /> Share Team Code</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="font-headline text-2xl">Join the Team!</DialogTitle>
-              <DialogDescription>
-                Scan the QR code to join your team's game instantly.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-               <div>
-                <Label htmlFor="secret-code-display">Your Team's Login URL</Label>
-                <div className="relative mt-1">
-                  <Input id="secret-code-display" readOnly value={loginUrl} className="pr-10 font-mono tracking-wider"/>
-                  <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8"
-                      onClick={copyToClipboard}
-                  >
-                      {hasCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                  </Button>
+        <div className='flex items-center gap-4'>
+            {playerName && (
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-secondary px-3 py-1.5 rounded-full">
+                    <UserCircle className="w-5 h-5"/>
+                    <span>Playing as {playerName}</span>
                 </div>
-              </div>
-              <div className="flex flex-col items-center gap-4">
-                  <p className="text-sm text-muted-foreground">Or scan with your phone</p>
-                  <div className="bg-white p-4 rounded-lg">
-                    {loginUrl && <QRCode value={loginUrl} size={180} />}
-                  </div>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            )}
+            <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline"><Share2 className="mr-2 h-4 w-4" /> Share Team Code</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                <DialogTitle className="font-headline text-2xl">Join the Team!</DialogTitle>
+                <DialogDescription>
+                    Scan the QR code to join your team's game instantly.
+                </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                <div>
+                    <Label htmlFor="secret-code-display">Your Team's Login URL</Label>
+                    <div className="relative mt-1">
+                    <Input id="secret-code-display" readOnly value={loginUrl} className="pr-10 font-mono tracking-wider"/>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8"
+                        onClick={copyToClipboard}
+                    >
+                        {hasCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                    </div>
+                </div>
+                <div className="flex flex-col items-center gap-4">
+                    <p className="text-sm text-muted-foreground">Or scan with your phone</p>
+                    <div className="bg-white p-4 rounded-lg">
+                        {loginUrl && <QRCode value={loginUrl} size={180} />}
+                    </div>
+                </div>
+                </div>
+            </DialogContent>
+            </Dialog>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">

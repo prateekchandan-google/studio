@@ -45,6 +45,7 @@ export const submissions: Submission[] = [
         imageSubmissionUrl: 'https://picsum.photos/400/300',
         status: 'pending',
         timestamp: new Date(Date.now() - 1000 * 60 * 2),
+        submittedBy: "Yara"
     },
     {
         id: 'S2',
@@ -55,5 +56,6 @@ export const submissions: Submission[] = [
         textSubmission: 'Is it a river? It has a riverbed!',
         status: 'pending',
         timestamp: new Date(Date.now() - 1000 * 60 * 5),
+        submittedBy: "Zane"
     }
 ];

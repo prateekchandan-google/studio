@@ -7,7 +7,7 @@ import type { Submission } from "@/lib/types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Bot, Loader } from "lucide-react";
+import { Check, X, Bot, Loader, UserCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { analyzeSubmission } from "@/ai/flows/submission-analyzer";
 
@@ -37,7 +37,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if(isVerified) {
       // In a real app, you would fetch this from Firestore
-      setSubmissions(initialSubmissions);
+      setSubmissions(initialSubmissions.map(s => ({...s, submittedBy: s.submittedBy || 'Unknown Player'})));
     }
   }, [isVerified])
 
@@ -94,6 +94,12 @@ export default function AdminDashboardPage() {
                     {formatDistanceToNow(submission.timestamp, { addSuffix: true })}
                   </Badge>
                 </div>
+                 {submission.submittedBy && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2">
+                        <UserCircle className="w-4 h-4"/>
+                        <span>Submitted by {submission.submittedBy}</span>
+                    </div>
+                 )}
               </CardHeader>
               <CardContent className="flex-grow space-y-4">
                 <blockquote className="text-sm italic border-l-4 pl-4">"{submission.textSubmission}"</blockquote>
