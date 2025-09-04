@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Loader, PlusCircle, Trash2, Edit, ChevronRight, X } from 'lucide-react';
+import { Loader, PlusCircle, Trash2, Edit, X } from 'lucide-react';
 
 const puzzleSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
@@ -54,11 +54,16 @@ export default function PuzzleManagementPage() {
       setIsLoading(false);
     }, (error) => {
       console.error('Failed to fetch puzzles from Firestore', error);
+      toast({
+        title: "Error Fetching Puzzles",
+        description: "Could not retrieve puzzle data. Please check your connection and Firestore security rules.",
+        variant: "destructive"
+      });
       setIsLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     if (editingPuzzle) {
@@ -217,6 +222,7 @@ export default function PuzzleManagementPage() {
             {isLoading ? (
                 <div className="flex items-center justify-center h-40">
                     <Loader className="w-8 h-8 animate-spin text-primary"/>
+                    <p className="ml-4 text-muted-foreground">Loading puzzles...</p>
                 </div>
             ) : puzzles.length > 0 ? (
                 <Accordion type="single" collapsible className="w-full">
@@ -266,7 +272,7 @@ export default function PuzzleManagementPage() {
                 <Alert>
                     <AlertTitle>No Puzzles Found</AlertTitle>
                     <AlertDescription>
-                        There are no puzzles in the database. Use the form above to create one.
+                        There are no puzzles in the database. Use the form above to create the first one.
                     </AlertDescription>
                 </Alert>
             )}
@@ -276,3 +282,5 @@ export default function PuzzleManagementPage() {
     </div>
   );
 }
+
+    
