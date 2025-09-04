@@ -90,7 +90,7 @@ export default function RegistrationPage() {
       name: data.teamName,
       house: data.houseName,
       members: data.members.map(m => m.name),
-      score: 100,
+      score: 0,
       riddlesSolved: 0,
       currentPuzzleIndex: 0,
       secretCode: teamId
