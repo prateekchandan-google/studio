@@ -228,9 +228,67 @@ export default function GamePage() {
     );
   }
 
+  const renderHeader = () => (
+    <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
+      <div>
+        <h1 className="text-2xl font-headline font-bold">Welcome, {team.name}!</h1>
+        <p className="text-muted-foreground">House: {team.house} | Score: {team.score}</p>
+      </div>
+      <div className='flex items-center gap-4'>
+        {playerName && (
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-secondary px-3 py-1.5 rounded-full">
+            <UserCircle className="w-5 h-5"/>
+            <span>Playing as {playerName}</span>
+          </div>
+        )}
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline"><Share2 className="mr-2 h-4 w-4" /> Share Team Code</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="font-headline text-2xl">Join the Team!</DialogTitle>
+              <DialogDescription>
+                Share the secret code or QR code to let others join your team.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="secret-code-display">Your Team's Secret Code</Label>
+                <div className="relative mt-1">
+                  <Input id="secret-code-display" readOnly value={team.secretCode} className="pr-10 font-mono tracking-wider"/>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8"
+                    onClick={copyToClipboard}
+                  >
+                    {hasCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-4">
+                <p className="text-sm text-muted-foreground">Or scan the QR code for instant login</p>
+                <div className="bg-white p-4 rounded-lg">
+                  {loginUrl && <QRCode value={loginUrl} size={180} />}
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+        <Button variant="ghost" size="sm" onClick={handleExitGame}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Exit Game
+        </Button>
+      </div>
+    </div>
+  );
+
   if (puzzles.length === 0) {
     return (
-        <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
+      <div className="container mx-auto py-8 px-4">
+        {renderHeader()}
+        <div className="flex justify-center items-center min-h-[calc(100vh-20rem)]">
           <Card className="w-full max-w-md text-center">
             <CardHeader>
                 <div className="mx-auto bg-accent/10 p-3 rounded-full mb-4 w-fit">
@@ -249,6 +307,7 @@ export default function GamePage() {
             </CardFooter>
           </Card>
         </div>
+      </div>
     );
   }
   
@@ -265,60 +324,7 @@ export default function GamePage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-headline font-bold">Welcome, {team.name}!</h1>
-          <p className="text-muted-foreground">House: {team.house} | Score: {team.score}</p>
-        </div>
-        <div className='flex items-center gap-4'>
-            {playerName && (
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-secondary px-3 py-1.5 rounded-full">
-                    <UserCircle className="w-5 h-5"/>
-                    <span>Playing as {playerName}</span>
-                </div>
-            )}
-             <Dialog>
-                <DialogTrigger asChild>
-                    <Button variant="outline"><Share2 className="mr-2 h-4 w-4" /> Share Team Code</Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                    <DialogTitle className="font-headline text-2xl">Join the Team!</DialogTitle>
-                    <DialogDescription>
-                        Share the secret code or QR code to let others join your team.
-                    </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                    <div>
-                        <Label htmlFor="secret-code-display">Your Team's Secret Code</Label>
-                        <div className="relative mt-1">
-                        <Input id="secret-code-display" readOnly value={team.secretCode} className="pr-10 font-mono tracking-wider"/>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8"
-                            onClick={copyToClipboard}
-                        >
-                            {hasCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                        </Button>
-                        </div>
-                    </div>
-                    <div className="flex flex-col items-center gap-4">
-                        <p className="text-sm text-muted-foreground">Or scan the QR code for instant login</p>
-                        <div className="bg-white p-4 rounded-lg">
-                            {loginUrl && <QRCode value={loginUrl} size={180} />}
-                        </div>
-                    </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-            <Button variant="ghost" size="sm" onClick={handleExitGame}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Exit Game
-            </Button>
-        </div>
-      </div>
-
+      {renderHeader()}
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <Card className="h-full flex flex-col">
