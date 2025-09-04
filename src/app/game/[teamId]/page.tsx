@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { puzzles } from '@/lib/data';
@@ -15,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle } from 'lucide-react';
+import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut } from 'lucide-react';
 import QRCode from "react-qr-code";
 
 
@@ -25,6 +26,7 @@ const PUZZLE_DURATION = 15 * 60; // 15 minutes in seconds
 
 export default function GamePage({ params }: { params: { teamId: string } }) {
   const { teamId } = params;
+  const router = useRouter();
   const [team, setTeam] = useState<Team | undefined>();
   const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle | undefined>();
   const [timeLeft, setTimeLeft] = useState(PUZZLE_DURATION);
@@ -129,11 +131,17 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   };
 
   const copyToClipboard = () => {
-    if (loginUrl) {
-      navigator.clipboard.writeText(loginUrl);
+    if (team?.secretCode) {
+      navigator.clipboard.writeText(team.secretCode);
       setHasCopied(true);
       setTimeout(() => setHasCopied(false), 2000);
     }
+  };
+
+  const handleExitGame = () => {
+    localStorage.removeItem('pathfinder-active-teamId');
+    localStorage.removeItem(`pathfinder-player-${teamId}`);
+    router.push('/');
   };
   
   if (isLoading) {
@@ -188,41 +196,45 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
                     <span>Playing as {playerName}</span>
                 </div>
             )}
-            <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline"><Share2 className="mr-2 h-4 w-4" /> Share Team Code</Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                <DialogTitle className="font-headline text-2xl">Join the Team!</DialogTitle>
-                <DialogDescription>
-                    Scan the QR code to join your team's game instantly.
-                </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                <div>
-                    <Label htmlFor="secret-code-display">Your Team's Login URL</Label>
-                    <div className="relative mt-1">
-                    <Input id="secret-code-display" readOnly value={loginUrl} className="pr-10 font-mono tracking-wider"/>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8"
-                        onClick={copyToClipboard}
-                    >
-                        {hasCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                    </Button>
+             <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="outline"><Share2 className="mr-2 h-4 w-4" /> Share Team Code</Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                    <DialogTitle className="font-headline text-2xl">Join the Team!</DialogTitle>
+                    <DialogDescription>
+                        Share the secret code or QR code to let others join your team.
+                    </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                    <div>
+                        <Label htmlFor="secret-code-display">Your Team's Secret Code</Label>
+                        <div className="relative mt-1">
+                        <Input id="secret-code-display" readOnly value={team.secretCode} className="pr-10 font-mono tracking-wider"/>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8"
+                            onClick={copyToClipboard}
+                        >
+                            {hasCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                        </Button>
+                        </div>
                     </div>
-                </div>
-                <div className="flex flex-col items-center gap-4">
-                    <p className="text-sm text-muted-foreground">Or scan with your phone</p>
-                    <div className="bg-white p-4 rounded-lg">
-                        {loginUrl && <QRCode value={loginUrl} size={180} />}
+                    <div className="flex flex-col items-center gap-4">
+                        <p className="text-sm text-muted-foreground">Or scan the QR code for instant login</p>
+                        <div className="bg-white p-4 rounded-lg">
+                            {loginUrl && <QRCode value={loginUrl} size={180} />}
+                        </div>
                     </div>
-                </div>
-                </div>
-            </DialogContent>
+                    </div>
+                </DialogContent>
             </Dialog>
+            <Button variant="ghost" size="sm" onClick={handleExitGame}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Exit Game
+            </Button>
         </div>
       </div>
 

@@ -31,6 +31,13 @@ export default function StartGamePage() {
   const [team, setTeam] = useState<Team | null>(null);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
 
+  useEffect(() => {
+    const activeTeamId = localStorage.getItem('pathfinder-active-teamId');
+    if (activeTeamId) {
+      router.replace(`/game/${activeTeamId}`);
+    }
+  }, [router]);
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -81,6 +88,7 @@ export default function StartGamePage() {
   const handleMemberSelectAndGo = () => {
     if (team && selectedMember) {
         localStorage.setItem(`pathfinder-player-${team.id}`, selectedMember);
+        localStorage.setItem('pathfinder-active-teamId', team.id);
         router.push(`/game/${team.id}`);
     } else {
         setError("Please select a team member.");
