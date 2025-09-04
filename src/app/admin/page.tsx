@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { submissions as initialSubmissions } from "@/lib/data";
 import type { Submission } from "@/lib/types";
@@ -17,7 +17,12 @@ type SubmissionWithAI = Submission & {
 };
 
 export default function AdminDashboardPage() {
-  const [submissions, setSubmissions] = useState<SubmissionWithAI[]>(initialSubmissions);
+  const [submissions, setSubmissions] = useState<SubmissionWithAI[]>([]);
+
+  useEffect(() => {
+    // In a real app, you would fetch this from Firestore
+    setSubmissions(initialSubmissions);
+  }, [])
 
   const handleDecision = (submissionId: string, decision: "approved" | "rejected") => {
     setSubmissions((prev) => prev.filter((sub) => sub.id !== submissionId));
@@ -30,6 +35,7 @@ export default function AdminDashboardPage() {
     const submission = submissions.find(s => s.id === submissionId);
     if (!submission) return;
 
+    // In a real app, you might want to send the image data to the flow as well.
     const result = await analyzeSubmission(submission.textSubmission, undefined);
 
     setSubmissions(prev => prev.map(s => 

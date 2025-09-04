@@ -14,11 +14,13 @@ export default function AdminLayout({
   useEffect(() => {
     // This is a mock authentication check.
     // In a real app, you'd verify a JWT or session cookie.
-    const isAuthenticated = localStorage.getItem('pathfinder-admin-auth') === 'true';
-    if (!isAuthenticated) {
-      router.replace('/admin/login');
-    } else {
-      setIsVerified(true);
+    if (typeof window !== 'undefined') {
+      const isAuthenticated = localStorage.getItem('pathfinder-admin-auth') === 'true';
+      if (!isAuthenticated) {
+        router.replace('/admin/login');
+      } else {
+        setIsVerified(true);
+      }
     }
   }, [router]);
 
