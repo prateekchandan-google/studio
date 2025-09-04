@@ -57,10 +57,10 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   }, []);
 
   useEffect(() => {
-    if (!teamId || puzzles.length === 0) {
-        if(puzzles.length > 0) setIsLoading(false);
-        return;
-    };
+    if (!teamId) {
+      setIsLoading(false);
+      return;
+    }
     
     setPlayerName(localStorage.getItem(`pathfinder-player-${teamId}`));
 
@@ -69,9 +69,11 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
       if (doc.exists()) {
         const teamData = { id: doc.id, ...doc.data() } as Team;
         setTeam(teamData);
-        // This prevents a flicker of the old puzzle when a new one is selected
-        if (puzzles[teamData.currentPuzzleIndex]?.id !== currentPuzzle?.id) {
-            setCurrentPuzzle(puzzles[teamData.currentPuzzleIndex]);
+        if (puzzles.length > 0) {
+          // This prevents a flicker of the old puzzle when a new one is selected
+          if (puzzles[teamData.currentPuzzleIndex]?.id !== currentPuzzle?.id) {
+              setCurrentPuzzle(puzzles[teamData.currentPuzzleIndex]);
+          }
         }
         if (teamData.secretCode) {
             setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(teamData.secretCode)}`);
@@ -99,7 +101,13 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
 
     return () => unsubscribeTeam();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamId, puzzles]);
+  }, [teamId]);
+
+  useEffect(() => {
+    if (team && puzzles.length > 0 && !currentPuzzle) {
+        setCurrentPuzzle(puzzles[team.currentPuzzleIndex]);
+    }
+  }, [team, puzzles, currentPuzzle]);
 
   useEffect(() => {
     if(!team) return;
@@ -173,7 +181,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     }
   };
   
-  if (isLoading || (puzzles.length === 0 && teamId)) {
+  if (isLoading) {
     return (
         <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
             <Loader className="w-12 h-12 animate-spin text-primary" />

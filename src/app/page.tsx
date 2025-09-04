@@ -31,6 +31,7 @@ export default function StartGamePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [team, setTeam] = useState<Team | null>(null);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -39,11 +40,32 @@ export default function StartGamePage() {
     },
   });
 
+  useEffect(() => {
+    const checkActiveSession = async () => {
+      const activeTeamId = localStorage.getItem('pathfinder-active-teamId');
+      if (activeTeamId) {
+        // Verify the team still exists before redirecting
+        const teamDocRef = doc(db, "teams", activeTeamId);
+        const teamDoc = await getDoc(teamDocRef);
+        if (teamDoc.exists()) {
+          router.push(`/game/${activeTeamId}`);
+        } else {
+          // Team was deleted, clear local storage
+          localStorage.removeItem('pathfinder-active-teamId');
+          localStorage.removeItem(`pathfinder-player-${activeTeamId}`);
+          setIsCheckingSession(false);
+        }
+      } else {
+        setIsCheckingSession(false);
+      }
+    };
+    checkActiveSession();
+  }, [router]);
+
   const handleLogin = async (secretCode: string) => {
     setIsSubmitting(true);
     setError('');
     
-    // The secret code is now the teamId
     const teamId = secretCode.trim();
     if (!teamId) {
         setError('Secret code cannot be empty.');
@@ -57,7 +79,6 @@ export default function StartGamePage() {
 
         if (teamDoc.exists()) {
             const teamData = {id: teamDoc.id, ...teamDoc.data()} as Team;
-            // The secret code is the ID, so if the doc exists, the code is valid.
             setTeam(teamData);
         } else {
             setError('Team not found. Please check your secret code.');
@@ -77,7 +98,7 @@ export default function StartGamePage() {
         handleLogin(codeFromQuery);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, form, router]);
+  }, [searchParams, form]);
 
   const handleMemberSelectAndGo = () => {
     if (team && selectedMember) {
@@ -87,6 +108,14 @@ export default function StartGamePage() {
     } else {
         setError("Please select a team member.");
     }
+  }
+
+  if (isCheckingSession) {
+    return (
+        <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
+            <Loader className="w-12 h-12 animate-spin text-primary" />
+        </div>
+    )
   }
   
   if (team) {
