@@ -48,10 +48,12 @@ export default function GamePage() {
   };
   
   useEffect(() => {
+    console.log("GAME_PAGE: Fetching puzzles...");
     const puzzlesQuery = query(collection(db, 'puzzles'), orderBy('title', 'asc'));
     const unsubscribePuzzles = onSnapshot(puzzlesQuery, (snapshot) => {
         const puzzlesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
         setPuzzles(puzzlesData);
+        console.log("GAME_PAGE: Puzzles loaded:", puzzlesData.length);
     }, (error) => {
       console.error("Error fetching puzzles: ", error);
       toast({
@@ -68,10 +70,12 @@ export default function GamePage() {
 
   useEffect(() => {
     if (!teamId) {
+      console.log("GAME_PAGE: No teamId found, stopping.");
       setIsLoading(false);
       return;
     }
     
+    console.log(`GAME_PAGE: Setting up listener for teamId: ${teamId}`);
     setPlayerName(localStorage.getItem(`pathfinder-player-${teamId}`));
 
     const teamDocRef = doc(db, 'teams', teamId);
@@ -79,10 +83,12 @@ export default function GamePage() {
       if (doc.exists()) {
         const teamData = { id: doc.id, ...doc.data() } as Team;
         setTeam(teamData);
+        console.log("GAME_PAGE: Team data updated:", teamData.name);
         if (teamData.secretCode && typeof window !== 'undefined') {
             setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(teamData.secretCode)}`);
         }
       } else {
+        console.log("GAME_PAGE: Team not found, exiting game.");
         toast({
             title: "Team Not Found",
             description: "Your team may have been removed by an admin. You are being logged out.",
@@ -106,10 +112,13 @@ export default function GamePage() {
   }, [teamId]);
 
   useEffect(() => {
+    console.log(`GAME_PAGE: Checking if game can start. Puzzles: ${puzzles.length}, Team: ${!!team}`);
     if (puzzles.length > 0 && team !== undefined) {
       if (team) {
+        console.log(`GAME_PAGE: Setting current puzzle index: ${team.currentPuzzleIndex}`);
         setCurrentPuzzle(puzzles[team.currentPuzzleIndex]);
       }
+      console.log("GAME_PAGE: All data loaded, setting isLoading to false.");
       setIsLoading(false);
     }
   }, [team, puzzles]);
