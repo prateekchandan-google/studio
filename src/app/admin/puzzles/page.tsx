@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { Puzzle } from '@/lib/types';
@@ -46,7 +46,7 @@ export default function PuzzleManagementPage() {
   });
 
   useEffect(() => {
-    const puzzlesQuery = query(collection(db, 'puzzles'), orderBy('title', 'asc'));
+    const puzzlesQuery = query(collection(db, 'puzzles'));
 
     const unsubscribe = onSnapshot(puzzlesQuery, (snapshot) => {
       const puzzlesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
@@ -105,7 +105,7 @@ export default function PuzzleManagementPage() {
   
   const handleCancelEdit = () => {
     setEditingPuzzle(null);
-  }
+  };
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-8">
@@ -267,7 +267,7 @@ export default function PuzzleManagementPage() {
                     <AlertTitle>No Puzzles Found</AlertTitle>
                     <AlertDescription>
                         There are no puzzles in the database. Use the form above to create one.
-                    </AlertDescription>
+                    </d_AlertDescription>
                 </Alert>
             )}
         </CardContent>
