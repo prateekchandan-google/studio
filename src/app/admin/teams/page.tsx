@@ -81,11 +81,11 @@ export default function TeamManagementPage() {
                     <TableCell className="text-right font-bold">{team.score}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" onClick={() => console.log('Editing team:', team.id)}>
                           <Edit className="h-4 w-4" />
                           <span className="sr-only">Edit Team</span>
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => console.log('Deleting team:', team.id)}>
                           <Trash2 className="h-4 w-4" />
                            <span className="sr-only">Delete Team</span>
                         </Button>
