@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Home, Users, Puzzle, CheckSquare, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -20,23 +20,22 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isAuthenticated = localStorage.getItem('pathfinder-admin-auth') === 'true';
       if (!isAuthenticated && pathname !== '/admin/login') {
-        router.replace('/admin/login');
+        window.location.replace('/admin/login');
       } else {
         setIsVerified(true);
       }
     }
-  }, [router, pathname]);
+  }, [pathname]);
 
   const handleExitAdmin = () => {
     localStorage.removeItem('pathfinder-admin-auth');
-    router.push('/admin/login');
+    window.location.replace('/admin/login');
   };
 
   if (!isVerified && pathname !== '/admin/login') {
@@ -55,7 +54,7 @@ export default function AdminLayout({
     <div className="flex min-h-screen">
       <aside className="w-64 flex-shrink-0 border-r bg-card p-4 flex flex-col">
         <div className="mb-8">
-          <h2 className="text-2xl font-headline font-bold">Admin Panel</h2>
+          <h2 className="text-2xl font.headline font-bold">Admin Panel</h2>
           <p className="text-sm text-muted-foreground">Treasure Hunt Control</p>
         </div>
         <nav className="flex flex-col gap-2 flex-grow">
