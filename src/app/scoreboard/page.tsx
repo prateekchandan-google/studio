@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import {
   Table,
   TableBody,
@@ -10,25 +12,31 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Team } from "@/lib/types";
-import { Trophy, ShieldX } from "lucide-react";
+import { Trophy, ShieldX, Loader } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ScoreboardPage() {
   const [teams, setTeams] = useState<Team[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // In a real app, you would fetch this data from a server.
-    // For this demo, we retrieve it from localStorage.
-    try {
-        const storedTeams: Team[] = JSON.parse(localStorage.getItem('treasure-hunt-teams') || '[]');
-        setTeams(storedTeams);
-    } catch (error) {
-        console.error("Failed to retrieve teams from localStorage", error);
-        setTeams([]);
-    }
-  }, []);
+    const teamsQuery = query(collection(db, "teams"), orderBy("score", "desc"));
 
-  const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
+    const unsubscribe = onSnapshot(teamsQuery, (querySnapshot) => {
+        const teamsData: Team[] = [];
+        querySnapshot.forEach((doc) => {
+            teamsData.push(doc.data() as Team);
+        });
+        setTeams(teamsData);
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Failed to fetch teams from Firestore", error);
+        setTeams([]);
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const getRankColor = (rank: number) => {
     switch (rank) {
@@ -100,8 +108,17 @@ export default function ScoreboardPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedTeams.length > 0 ? (
-              sortedTeams.map((team, index) => (
+            {isLoading ? (
+                <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                        <div className="flex justify-center items-center gap-2">
+                            <Loader className="h-5 w-5 animate-spin" />
+                            <span className="text-muted-foreground">Loading scoreboard...</span>
+                        </div>
+                    </TableCell>
+                </TableRow>
+            ) : teams.length > 0 ? (
+              teams.map((team, index) => (
                 <TableRow key={team.id} className={index < 3 ? "bg-secondary/50" : ""}>
                   <TableCell className="text-center">
                     <span className={`text-xl font-bold ${getRankColor(index + 1)}`}>
@@ -111,6 +128,7 @@ export default function ScoreboardPage() {
                   <TableCell className="font-medium">{team.name}</TableCell>
                   <TableCell>{team.house}</TableCell>
                   <TableCell className="text-right">{team.riddlesSolved}</TableCell>
+
                   <TableCell className="text-right font-bold text-lg">{team.score}</TableCell>
                 </TableRow>
               ))

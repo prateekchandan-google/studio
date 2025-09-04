@@ -5,6 +5,7 @@ export interface Team {
   score: number;
   riddlesSolved: number;
   currentPuzzleIndex: number;
+  secretCode: string;
 }
 
 export interface Puzzle {

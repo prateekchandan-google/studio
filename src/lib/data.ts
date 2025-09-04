@@ -31,12 +31,13 @@ export const puzzles: Puzzle[] = [
   }
 ];
 
+// Teams will now be fetched from Firestore
 export const teams: Team[] = [];
 
 export const submissions: Submission[] = [
     {
         id: 'S1',
-        teamId: 'T3',
+        teamId: 'jalebi',
         teamName: 'Jalebi Giants',
         puzzleId: 2,
         puzzleTitle: 'The Merchant\'s Dilemma',
@@ -47,7 +48,7 @@ export const submissions: Submission[] = [
     },
     {
         id: 'S2',
-        teamId: 'T4',
+        teamId: 'ladoo',
         teamName: 'Ladoo Legends',
         puzzleId: 1,
         puzzleTitle: 'The Echoing Cave',

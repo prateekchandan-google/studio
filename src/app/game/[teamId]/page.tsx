@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { puzzles } from '@/lib/data';
 import type { Puzzle, Team } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check } from 'lucide-react';
+import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader } from 'lucide-react';
 import QRCode from "react-qr-code";
 
 
@@ -28,29 +30,35 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   const [timeLeft, setTimeLeft] = useState(PUZZLE_DURATION);
   const [isPaused, setIsPaused] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [secretCode, setSecretCode] = useState('');
   const [loginUrl, setLoginUrl] = useState('');
   const [hasCopied, setHasCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const { toast } = useToast();
 
   useEffect(() => {
-    // In a real app, you'd fetch team data. For this demo, we use localStorage.
-    try {
-        const storedTeams: Team[] = JSON.parse(localStorage.getItem('treasure-hunt-teams') || '[]');
-        const foundTeam = storedTeams.find(t => t.id.toLowerCase() === teamId.toLowerCase());
-        if (foundTeam) {
-            setTeam(foundTeam);
-            setCurrentPuzzle(puzzles[foundTeam.currentPuzzleIndex]);
-            const storedCode = localStorage.getItem(`team-secret-${teamId}`);
-            if(storedCode) {
-              setSecretCode(storedCode);
-              setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(storedCode)}`);
-            }
+    if (!teamId) return;
+
+    const teamDocRef = doc(db, 'teams', teamId);
+    const unsubscribe = onSnapshot(teamDocRef, (doc) => {
+      if (doc.exists()) {
+        const teamData = doc.data() as Team;
+        setTeam(teamData);
+        setCurrentPuzzle(puzzles[teamData.currentPuzzleIndex]);
+        if (teamData.secretCode) {
+            setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(teamData.secretCode)}`);
         }
-    } catch (error) {
-        console.error("Failed to retrieve teams from localStorage", error);
-    }
+      } else {
+        // Team not found
+        setTeam(undefined);
+      }
+      setIsLoading(false);
+    }, (error) => {
+        console.error("Error fetching team:", error);
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [teamId]);
 
   useEffect(() => {
@@ -78,7 +86,8 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   const handleHint = () => {
     if (!team) return;
     setShowHint(true);
-    setTeam(t => t ? ({...t, score: t.score - 5}) : undefined);
+    // In a real app, this score update would be an atomic operation on the server.
+    // For now, we are not updating score on hints.
     toast({
       title: 'Hint Unlocked!',
       description: '5 points have been deducted.',
@@ -88,6 +97,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   const handleSkip = () => {
     if (!team) return;
       const nextPuzzleIndex = (team.currentPuzzleIndex + 1) % puzzles.length;
+      // This should also be an atomic server update
       setTeam(t => t ? ({...t, currentPuzzleIndex: nextPuzzleIndex}) : undefined);
       setCurrentPuzzle(puzzles[nextPuzzleIndex]);
       setTimeLeft(PUZZLE_DURATION);
@@ -120,6 +130,15 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
       setTimeout(() => setHasCopied(false), 2000);
     }
   };
+  
+  if (isLoading) {
+    return (
+        <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
+            <Loader className="w-12 h-12 animate-spin text-primary" />
+        </div>
+    )
+  }
+
 
   if (!team || !currentPuzzle) {
     return (
@@ -131,12 +150,12 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
                 </div>
               <CardTitle className="font-headline text-2xl">Team Not Found</CardTitle>
               <CardDescription>
-                We couldn't find a team with that code. Please check your code and try again, or register a new team.
+                We couldn't find a team with that ID. Please check your URL or register a new team.
               </CardDescription>
             </CardHeader>
             <CardFooter className="flex-col gap-4">
               <Button asChild className="w-full">
-                <Link href="/">Try Again</Link>
+                <Link href="/">Try Login Again</Link>
               </Button>
               <Button asChild variant="outline" className="w-full">
                 <Link href="/register">Register a New Team</Link>
@@ -165,11 +184,11 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
             <DialogHeader>
               <DialogTitle className="font-headline text-2xl">Join the Team!</DialogTitle>
               <DialogDescription>
-                Use the secret code or scan the QR code to join your team's game.
+                Scan the QR code to join your team's game instantly.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div>
+               <div>
                 <Label htmlFor="secret-code-display">Your Team's Login URL</Label>
                 <div className="relative mt-1">
                   <Input id="secret-code-display" readOnly value={loginUrl} className="pr-10 font-mono tracking-wider"/>
@@ -270,5 +289,3 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     </div>
   );
 }
-
-    

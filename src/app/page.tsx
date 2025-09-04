@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { Team } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +27,7 @@ export default function StartGamePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -32,15 +36,36 @@ export default function StartGamePage() {
     },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
-    // In a real app, you would validate the secret code against a database.
-    // For this demo, we'll use a simple check and route to a dynamic game page.
-    const teamId = data.secretCode.split('-')[0];
-    const storedCode = localStorage.getItem(`team-secret-${teamId}`);
-    if (data.secretCode === storedCode) {
-      router.push(`/game/${teamId}`);
-    } else {
-      setError('Invalid secret code.');
+  const handleLogin = async (secretCode: string) => {
+    setIsSubmitting(true);
+    setError('');
+    
+    if (!secretCode.includes('-')) {
+        setError('Invalid secret code format.');
+        setIsSubmitting(false);
+        return;
+    }
+
+    const teamId = secretCode.split('-')[0];
+    try {
+        const teamDocRef = doc(db, "teams", teamId);
+        const teamDoc = await getDoc(teamDocRef);
+
+        if (teamDoc.exists()) {
+            const teamData = teamDoc.data() as Team;
+            if (teamData.secretCode === secretCode) {
+                router.push(`/game/${teamId}`);
+            } else {
+                setError('Invalid secret code.');
+            }
+        } else {
+            setError('Team not found.');
+        }
+    } catch (err) {
+        console.error("Firestore error:", err);
+        setError('An error occurred while trying to log in.');
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -48,15 +73,9 @@ export default function StartGamePage() {
     const codeFromQuery = searchParams.get('secretCode');
     if (codeFromQuery) {
         form.setValue('secretCode', codeFromQuery);
-        // We can submit the form directly if the code is in the query.
-        const teamId = codeFromQuery.split('-')[0];
-        const storedCode = localStorage.getItem(`team-secret-${teamId}`);
-        if (codeFromQuery === storedCode) {
-            router.push(`/game/${teamId}`);
-        } else {
-            setError('Invalid secret code from URL.');
-        }
+        handleLogin(codeFromQuery);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, form, router]);
 
 
@@ -71,7 +90,7 @@ export default function StartGamePage() {
           <CardDescription>Enter your team's secret code to begin.</CardDescription>
         </CardHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={form.handleSubmit((data) => handleLogin(data.secretCode))}>
             <CardContent className="space-y-4">
               <FormField
                 control={form.control}
@@ -80,7 +99,7 @@ export default function StartGamePage() {
                   <FormItem>
                     <FormLabel>Secret Code</FormLabel>
                     <FormControl>
-                      <Input placeholder="halwa-xxxxxx" {...field} />
+                      <Input placeholder="halwa-xxxxxx" {...field} disabled={isSubmitting}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -93,9 +112,8 @@ export default function StartGamePage() {
               )}
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-              <Button type="submit" className="w-full">
-                <LogIn className="mr-2 h-4 w-4" />
-                Enter Challenge
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? 'Logging in...' : <><LogIn className="mr-2 h-4 w-4" /> Enter Challenge</>}
               </Button>
               <div className="text-center text-sm text-muted-foreground">
                 Don't have a code?{' '}
@@ -110,5 +128,3 @@ export default function StartGamePage() {
     </div>
   );
 }
-
-    

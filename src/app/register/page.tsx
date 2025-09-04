@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,9 +13,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { UserPlus, Users, X, Copy, Check, ArrowRight } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Team } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+
 
 const houseNames = ["Halwa", "Chamcham", "Jalebi", "Ladoo"] as const;
 
@@ -29,7 +32,9 @@ type RegistrationFormValues = z.infer<typeof registrationSchema>;
 export default function RegistrationPage() {
   const [secretCode, setSecretCode] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(registrationSchema),
@@ -43,11 +48,11 @@ export default function RegistrationPage() {
     name: "members",
   });
 
-  const onSubmit = (data: RegistrationFormValues) => {
-    // In a real app, this would be saved to a database.
-    // For this demo, we'll use localStorage.
+  const onSubmit = async (data: RegistrationFormValues) => {
+    setIsSubmitting(true);
     const teamId = data.houseName.toLowerCase();
     const teamName = `${data.houseName} ${data.members[0].name.split(' ')[0]}'s Crew`;
+    const newSecretCode = `${teamId}-${Math.random().toString(36).substring(2, 8)}`;
 
     const newTeam: Team = {
       id: teamId,
@@ -56,24 +61,22 @@ export default function RegistrationPage() {
       score: 100,
       riddlesSolved: 0,
       currentPuzzleIndex: 0,
+      secretCode: newSecretCode
     };
     
-    // Store in localStorage
     try {
-      const existingTeams = JSON.parse(localStorage.getItem('treasure-hunt-teams') || '[]');
-      // To keep it simple for the demo, we'll overwrite if the house has already registered.
-      const otherTeams = existingTeams.filter((t: Team) => t.id !== newTeam.id);
-      const updatedTeams = [...otherTeams, newTeam];
-      localStorage.setItem('treasure-hunt-teams', JSON.stringify(updatedTeams));
-
-      const newSecretCode = `${teamId}-${Math.random().toString(36).substring(2, 8)}`;
-      localStorage.setItem(`team-secret-${teamId}`, newSecretCode);
+      await setDoc(doc(db, "teams", teamId), newTeam);
       setSecretCode(newSecretCode);
-
     } catch (error) {
-        console.error("Could not save team to localStorage", error);
+        console.error("Could not save team to Firestore", error);
+        toast({
+            title: "Registration Failed",
+            description: "Could not save your team. Please try again.",
+            variant: "destructive",
+        })
+    } finally {
+        setIsSubmitting(false);
     }
-
   };
 
   const copyToClipboard = () => {
@@ -143,7 +146,7 @@ export default function RegistrationPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>House Name</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select your house" />
@@ -171,10 +174,10 @@ export default function RegistrationPage() {
                       <FormItem>
                         <div className="flex items-center gap-2">
                            <FormControl>
-                            <Input placeholder={`Member ${index + 1} Name/Alias`} {...field} />
+                            <Input placeholder={`Member ${index + 1} Name/Alias`} {...field} disabled={isSubmitting}/>
                           </FormControl>
                           {fields.length > 3 && (
-                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={isSubmitting}>
                               <X className="w-4 h-4" />
                             </Button>
                           )}
@@ -190,7 +193,7 @@ export default function RegistrationPage() {
                     </p>
                 )}
                 {fields.length < 7 && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '' })}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '' })} disabled={isSubmitting}>
                     <UserPlus className="mr-2 h-4 w-4" />
                     Add Member
                   </Button>
@@ -198,9 +201,8 @@ export default function RegistrationPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full">
-                <Users className="mr-2 h-4 w-4" />
-                Register Team & Get Code
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? 'Registering...' : <><Users className="mr-2 h-4 w-4" /> Register Team & Get Code</>}
               </Button>
             </CardFooter>
           </form>
