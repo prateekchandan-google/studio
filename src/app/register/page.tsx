@@ -100,8 +100,7 @@ export default function RegistrationPage() {
 
   const proceedToGame = () => {
     if (secretCode) {
-        const teamId = secretCode.split('-')[0];
-        router.push(`/game/${teamId}`);
+      router.push(`/?secretCode=${encodeURIComponent(secretCode)}`);
     }
   }
 

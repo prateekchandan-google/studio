@@ -178,7 +178,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-headline font-bold">{team.name}</h1>
+          <h1 className="text-2xl font-headline font-bold">Welcome, {team.name}!</h1>
           <p className="text-muted-foreground">House: {team.house} | Score: {team.score}</p>
         </div>
         <div className='flex items-center gap-4'>
