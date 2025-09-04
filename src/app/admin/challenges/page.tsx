@@ -55,7 +55,7 @@ export default function PuzzleManagementPage() {
       }
     );
     return () => unsubscribe();
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     if (editingPuzzle) {
