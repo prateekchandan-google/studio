@@ -28,7 +28,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   const [isPaused, setIsPaused] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [secretCode, setSecretCode] = useState('');
-  const [gameUrl, setGameUrl] = useState('');
+  const [loginUrl, setLoginUrl] = useState('');
   const [hasCopied, setHasCopied] = useState(false);
 
   const { toast } = useToast();
@@ -44,8 +44,8 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
             const storedCode = localStorage.getItem(`team-secret-${params.teamId}`);
             if(storedCode) {
               setSecretCode(storedCode);
+              setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(storedCode)}`);
             }
-            setGameUrl(window.location.href);
         }
     } catch (error) {
         console.error("Failed to retrieve teams from localStorage", error);
@@ -147,7 +147,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
   }
 
   const canShowHint = timeLeft <= PUZZLE_DURATION - HINT_TIME;
-  const canSkip = timeLeft <= PUZZLE_DURATION - SKIP_TIME;
+  const canSkip = timeLeft <= PUZZLE_DURATION - SKIP_IIME;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -185,7 +185,7 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
               <div className="flex flex-col items-center gap-4">
                   <p className="text-sm text-muted-foreground">Or scan with your phone</p>
                   <div className="bg-white p-4 rounded-lg">
-                    {gameUrl && <QRCode value={gameUrl} size={180} />}
+                    {loginUrl && <QRCode value={loginUrl} size={180} />}
                   </div>
               </div>
             </div>
@@ -269,3 +269,5 @@ export default function GamePage({ params }: { params: { teamId: string } }) {
     </div>
   );
 }
+
+    

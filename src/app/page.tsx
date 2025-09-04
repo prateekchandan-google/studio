@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -22,6 +22,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function StartGamePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState('');
 
   const form = useForm<LoginFormValues>({
@@ -35,13 +36,29 @@ export default function StartGamePage() {
     // In a real app, you would validate the secret code against a database.
     // For this demo, we'll use a simple check and route to a dynamic game page.
     // We'll extract a teamId-like value from the code.
-    if (data.secretCode.includes('-')) {
+    const storedCode = localStorage.getItem(`team-secret-${data.secretCode.split('-')[0]}`);
+    if (data.secretCode === storedCode) {
       const teamId = data.secretCode.split('-')[0];
       router.push(`/game/${teamId}`);
     } else {
       setError('Invalid secret code format.');
     }
   };
+
+  useEffect(() => {
+    const codeFromQuery = searchParams.get('secretCode');
+    if (codeFromQuery) {
+        form.setValue('secretCode', codeFromQuery);
+        // We can submit the form directly if the code is in the query.
+        const teamId = codeFromQuery.split('-')[0];
+        const storedCode = localStorage.getItem(`team-secret-${teamId}`);
+        if (codeFromQuery === storedCode) {
+            router.push(`/game/${teamId}`);
+        } else {
+            setError('Invalid secret code from URL.');
+        }
+    }
+  }, [searchParams, form, router]);
 
 
   return (
@@ -94,3 +111,5 @@ export default function StartGamePage() {
     </div>
   );
 }
+
+    
