@@ -114,11 +114,7 @@ export default function RegistrationPage() {
         pathId: assignedPathId,
       };
     
-      await setDoc(doc(db, "teams", teamId), {
-        ...newTeam,
-        gameStartTime: serverTimestamp(),
-        currentPuzzleStartTime: serverTimestamp()
-      });
+      await setDoc(doc(db, "teams", teamId), newTeam);
       setSecretCode(teamId);
     } catch (error) {
         console.error("Could not save team to Firestore", error);

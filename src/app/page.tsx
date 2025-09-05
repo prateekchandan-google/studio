@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Team } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,8 +15,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LogIn, Key, Users, UserCheck, Loader } from 'lucide-react';
+import { LogIn, Key, Users, UserCheck, Loader, Timer } from 'lucide-react';
 import Link from 'next/link';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const loginSchema = z.object({
   secretCode: z.string().min(1, 'Secret code cannot be empty.'),
@@ -32,6 +33,7 @@ export default function StartGamePage() {
   const [team, setTeam] = useState<Team | null>(null);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [showStartTimerDialog, setShowStartTimerDialog] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -100,13 +102,29 @@ export default function StartGamePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, form]);
 
-  const handleMemberSelectAndGo = () => {
+  const handleMemberSelectAndGo = async () => {
     if (team && selectedMember) {
         localStorage.setItem(`pathfinder-player-${team.id}`, selectedMember);
         localStorage.setItem('pathfinder-active-teamId', team.id);
-        router.push(`/game/${team.id}`);
+
+        if (!team.gameStartTime) {
+            const teamRef = doc(db, "teams", team.id);
+            await updateDoc(teamRef, {
+                gameStartTime: serverTimestamp(),
+                currentPuzzleStartTime: serverTimestamp()
+            });
+            setShowStartTimerDialog(true);
+        } else {
+            router.push(`/game/${team.id}`);
+        }
     } else {
         setError("Please select a team member.");
+    }
+  }
+
+  const proceedToGame = () => {
+    if (team) {
+      router.push(`/game/${team.id}`);
     }
   }
 
@@ -121,6 +139,23 @@ export default function StartGamePage() {
   if (team) {
     return (
         <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
+            <AlertDialog open={showStartTimerDialog} onOpenChange={setShowStartTimerDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
+                            <Timer className="w-8 h-8 text-primary" />
+                        </div>
+                        <AlertDialogTitle className="font-headline text-2xl text-center">The Game Begins!</AlertDialogTitle>
+                        <AlertDialogDescription className="text-center">
+                            You are the first member of your team to log in. The 60-minute timer for your treasure hunt starts now. Good luck!
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogAction onClick={proceedToGame} className="w-full">
+                        Let's Go!
+                    </AlertDialogAction>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center">
                     <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
