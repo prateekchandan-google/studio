@@ -67,6 +67,18 @@ export default function GamePage() {
 
   const { toast } = useToast();
 
+  // Debugging logs
+  useEffect(() => {
+    console.log('Game Page State Update:', {
+        isLoading,
+        teamExists: !!team,
+        puzzlesCount: puzzles.length,
+        gameSettingsExists: !!gameSettings,
+        currentPuzzleExists: !!currentPuzzle,
+    });
+  }, [isLoading, team, puzzles, gameSettings, currentPuzzle]);
+
+
   const handleExitGame = async () => {
     if (playerName) {
         const teamRef = doc(db, 'teams', teamId);
@@ -80,12 +92,15 @@ export default function GamePage() {
   };
   
   useEffect(() => {
+    console.log('Setting up settings listener...');
     const settingsRef = doc(db, 'settings', 'game');
     const unsubscribe = onSnapshot(settingsRef, (doc) => {
         if (doc.exists()) {
             const newSettings = doc.data() as GameSettings;
+            console.log('Game settings loaded:', newSettings);
             setGameSettings(newSettings);
         } else {
+            console.log('Game settings document does not exist.');
             setGameSettings({ isStarted: false });
         }
     });
@@ -96,6 +111,7 @@ export default function GamePage() {
       if (gameSettings) {
           const gameJustStarted = prevGameStartedRef.current === false && gameSettings.isStarted === true;
           if (gameJustStarted && team && !team.gameStartTime) {
+              console.log('Game just started live, showing dialog.');
               setShowLiveStartDialog(true);
           }
           prevGameStartedRef.current = gameSettings.isStarted;
@@ -115,6 +131,7 @@ export default function GamePage() {
   // Master data fetching effect for team
   useEffect(() => {
     if (!teamId) {
+      console.log('No teamId, setting isLoading to false.');
       setIsLoading(false);
       return;
     }
@@ -122,6 +139,7 @@ export default function GamePage() {
     setPlayerName(localStorage.getItem(`pathfinder-player-${teamId}`));
   
     const teamDocRef = doc(db, 'teams', teamId);
+    console.log(`Setting up team listener for teamId: ${teamId}`);
   
     const unsubscribeTeam = onSnapshot(teamDocRef, (teamDoc) => {
       if (!teamDoc.exists()) {
@@ -132,12 +150,14 @@ export default function GamePage() {
           variant: "destructive",
           duration: 5000,
         });
+        console.log('Team not found, logging out.');
         handleExitGame();
         setIsLoading(false);
         return;
       }
   
       const teamData = { id: teamDoc.id, ...teamDoc.data() } as Team;
+      console.log('Team data loaded:', teamData);
 
        // Check for rejection/approval toasts
         if (prevSubmissionIdRef.current && !teamData.currentSubmissionId && prevPuzzleIndexRef.current === teamData.currentPuzzleIndex) {
@@ -173,7 +193,12 @@ export default function GamePage() {
         setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(teamData.secretCode)}`);
       }
   
-      setIsLoading(false); // Stop loading after essential team data is fetched
+      // This is a key change: ensure loading is false only after team is set.
+      if (isLoading) {
+        console.log('Team data has been set, setting isLoading to false.');
+        setIsLoading(false);
+      }
+
     }, (error) => {
       console.error("Error fetching team:", error);
       toast({ title: "Error", description: "Could not load team data.", variant: "destructive" });
@@ -181,13 +206,17 @@ export default function GamePage() {
       setIsLoading(false);
     });
   
-    return () => unsubscribeTeam();
+    return () => {
+        console.log('Unsubscribing from team listener.');
+        unsubscribeTeam();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId, toast]);
 
   // Puzzle fetching effect, dependent on team
   useEffect(() => {
       if (team && team.pathId !== undefined) {
+          console.log(`Team has pathId ${team.pathId}, fetching puzzles.`);
           const puzzlesQuery = query(
               collection(db, 'puzzles'),
               where('pathId', '==', team.pathId),
@@ -195,13 +224,18 @@ export default function GamePage() {
           );
           const unsubscribePuzzles = onSnapshot(puzzlesQuery, (puzzlesSnapshot) => {
               const puzzlesData = puzzlesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
+              console.log(`Puzzles loaded for pathId ${team.pathId}:`, puzzlesData.length);
               setPuzzles(puzzlesData);
           }, (error) => {
               console.error("Error fetching puzzles:", error);
               toast({ title: "Error", description: "Could not load puzzle data.", variant: "destructive" });
           });
-          return () => unsubscribePuzzles();
+          return () => {
+            console.log('Unsubscribing from puzzles listener.');
+            unsubscribePuzzles();
+          };
       } else {
+          console.log('Team data is present, but no pathId found. Not fetching puzzles.');
           setPuzzles([]);
       }
   }, [team, toast]);
@@ -904,5 +938,7 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
 
     
