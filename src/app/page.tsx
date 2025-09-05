@@ -198,8 +198,7 @@ export default function StartGamePage() {
     <div className="relative min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-4">
        <div 
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('https://picsum.photos/seed/treasuremap/1200/800')" }}
-        data-ai-hint="treasure map"
+        style={{ backgroundImage: "url('/treasure-map-background.jpg')" }}
         >
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       </div>
