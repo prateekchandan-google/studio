@@ -223,64 +223,75 @@ export default function StartGamePage() {
 
       <Card className="w-full max-w-md z-10">
         <CardHeader className="text-center">
-          <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
-            <Key className="w-8 h-8 text-primary" />
-          </div>
-          <CardTitle className="font-headline text-2xl">Start Game</CardTitle>
-          <CardDescription>Enter your team's secret code to begin.</CardDescription>
+            <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
+                {gameSettings.isStarted ? <Key className="w-8 h-8 text-primary" /> : <Timer className="w-8 h-8 text-primary" />}
+            </div>
+          <CardTitle className="font-headline text-2xl">{gameSettings.isStarted ? 'Start Game' : 'Game Not Started'}</CardTitle>
+          <CardDescription>
+            {gameSettings.isStarted ? "Enter your team's secret code to begin." : "The game has not started yet, wait till 11th September Wednesday 2:00 PM"}
+          </CardDescription>
         </CardHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => handleLogin(data.secretCode))}>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="secretCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Secret Code</FormLabel>
-                    <FormControl>
-                      <Input placeholder="halwa-xxxxxx" {...field} disabled={isSubmitting}/>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+        {gameSettings.isStarted ? (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => handleLogin(data.secretCode))}>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="secretCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Secret Code</FormLabel>
+                      <FormControl>
+                        <Input placeholder="halwa-xxxxxx" {...field} disabled={isSubmitting}/>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
                 )}
-              />
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-            <CardFooter className="flex flex-col gap-4">
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? (
-                    <>
-                        <Loader className="mr-2 h-4 w-4 animate-spin" />
-                        Logging in...
-                    </>
-                ) : (
-                    <>
-                        <LogIn className="mr-2 h-4 w-4" /> Enter Challenge
-                    </>
-                )}
-              </Button>
-              <div className="relative w-full flex items-center">
-                  <div className="flex-grow border-t border-muted-foreground/20"></div>
-                  <span className="flex-shrink mx-4 text-xs text-muted-foreground uppercase">Or</span>
-                  <div className="flex-grow border-t border-muted-foreground/20"></div>
-              </div>
-              <Button type="button" variant="secondary" className="w-full" asChild>
-                <Link href="/register">
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Register New Team
-                </Link>
-              </Button>
+              </CardContent>
+              <CardFooter className="flex flex-col gap-4">
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                      <>
+                          <Loader className="mr-2 h-4 w-4 animate-spin" />
+                          Logging in...
+                      </>
+                  ) : (
+                      <>
+                          <LogIn className="mr-2 h-4 w-4" /> Enter Challenge
+                      </>
+                  )}
+                </Button>
+                <div className="relative w-full flex items-center">
+                    <div className="flex-grow border-t border-muted-foreground/20"></div>
+                    <span className="flex-shrink mx-4 text-xs text-muted-foreground uppercase">Or</span>
+                    <div className="flex-grow border-t border-muted-foreground/20"></div>
+                </div>
+                <Button type="button" variant="secondary" className="w-full" asChild>
+                  <Link href="/register">
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Register New Team
+                  </Link>
+                </Button>
+              </CardFooter>
+            </form>
+          </Form>
+        ) : (
+             <CardFooter className="flex flex-col gap-4">
+                <Button type="button" variant="secondary" className="w-full" asChild>
+                    <Link href="/register">
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Register New Team
+                    </Link>
+                </Button>
             </CardFooter>
-          </form>
-        </Form>
+        )}
       </Card>
     </div>
   );
 }
-
-    
