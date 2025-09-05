@@ -4,7 +4,7 @@
 import { useState, useEffect, FormEvent, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { doc, onSnapshot, collection, query, orderBy, where, addDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, orderBy, where, addDoc, updateDoc, writeBatch, serverTimestamp, getDoc, FieldValue, deleteField } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Puzzle, Team } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Sparkles, Trophy } from 'lucide-react';
+import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Sparkles, Trophy, Users } from 'lucide-react';
 import QRCode from "react-qr-code";
 
 
@@ -43,6 +43,7 @@ export default function GamePage() {
   const [puzzlesLoaded, setPuzzlesLoaded] = useState(false);
   const [teamLoaded, setTeamLoaded] = useState(false);
   const [playerName, setPlayerName] = useState<string | null>(null);
+  const [onlinePlayers, setOnlinePlayers] = useState<string[]>([]);
 
   // Use refs to track previous state to avoid stale state in snapshot listener
   const prevSubmissionIdRef = useRef<string | null | undefined>();
@@ -51,7 +52,13 @@ export default function GamePage() {
 
   const { toast } = useToast();
 
-  const handleExitGame = () => {
+  const handleExitGame = async () => {
+    if (playerName) {
+        const teamRef = doc(db, 'teams', teamId);
+        await updateDoc(teamRef, {
+            [`onlineMembers.${playerName}`]: deleteField()
+        });
+    }
     localStorage.removeItem('pathfinder-active-teamId');
     localStorage.removeItem(`pathfinder-player-${teamId}`);
     router.push('/');
@@ -83,6 +90,48 @@ export default function GamePage() {
     return () => unsubscribePuzzles();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [team?.pathId]);
+  
+  // Effect for handling player online status
+  useEffect(() => {
+    if (!teamId || !playerName) return;
+
+    const teamRef = doc(db, 'teams', teamId);
+    
+    // Set initial online status
+    updateDoc(teamRef, {
+      [`onlineMembers.${playerName}`]: serverTimestamp()
+    });
+    
+    // Heartbeat to keep status fresh
+    const interval = setInterval(() => {
+       updateDoc(teamRef, {
+         [`onlineMembers.${playerName}`]: serverTimestamp()
+       });
+    }, 20000); // every 20 seconds
+
+    // Cleanup on unmount/disconnect
+    const handleBeforeUnload = () => {
+       updateDoc(teamRef, {
+         [`onlineMembers.${playerName}`]: deleteField()
+       });
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+        clearInterval(interval);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        // Best-effort cleanup on component unmount
+        getDoc(teamRef).then(docSnap => {
+            if(docSnap.exists()){
+                updateDoc(teamRef, {
+                    [`onlineMembers.${playerName}`]: deleteField()
+                });
+            }
+        })
+    };
+
+  }, [teamId, playerName]);
+
 
   useEffect(() => {
     if (!teamId) {
@@ -121,6 +170,15 @@ export default function GamePage() {
         }
         
         setTeam(teamData);
+
+        if (teamData.onlineMembers) {
+            const now = Date.now();
+            const online = Object.entries(teamData.onlineMembers)
+                .filter(([_, timestamp]) => timestamp && (now - timestamp.toDate().getTime()) < 30000) // 30 second threshold
+                .map(([name]) => name);
+            setOnlinePlayers(online);
+        }
+
         // Update the refs with the latest state
         prevSubmissionIdRef.current = teamData.currentSubmissionId;
         prevPuzzleIndexRef.current = teamData.currentPuzzleIndex;
@@ -279,8 +337,6 @@ export default function GamePage() {
       
       if (imageFile && imageFile.size > 0) {
         submissionData.imageSubmissionDataUri = await fileToDataUri(imageFile);
-      } else {
-        submissionData.imageSubmissionDataUri = null;
       }
 
       const submissionDocRef = await addDoc(collection(db, 'submissions'), submissionData);
@@ -352,10 +408,14 @@ export default function GamePage() {
   }
 
   const renderHeader = () => (
-    <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
+    <div className="flex justify-between items-start mb-8 flex-wrap gap-4">
       <div>
         <h1 className="text-2xl font-headline font-bold">Welcome, {team.name}!</h1>
         <p className="text-muted-foreground">House: {team.house} | Score: {team.score}</p>
+        <div className="flex items-center gap-2 mt-2 text-sm text-green-500 font-medium">
+            <Users className="w-4 h-4"/>
+            <span>Online: {onlinePlayers.join(', ')}</span>
+        </div>
       </div>
       <div className='flex items-center gap-4'>
         {playerName && (
@@ -581,5 +641,3 @@ export default function GamePage() {
     </div>
   );
 }
-
-    

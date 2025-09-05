@@ -1,4 +1,5 @@
 
+
 export interface Team {
   id: string;
   name: string;
@@ -10,6 +11,7 @@ export interface Team {
   secretCode: string;
   pathId?: number;
   currentSubmissionId?: string | null;
+  onlineMembers?: { [key: string]: any };
 }
 
 export interface Puzzle {
