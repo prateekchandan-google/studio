@@ -63,16 +63,20 @@ export default function StartGamePage() {
         const teamDocRef = doc(db, "teams", activeTeamId);
         const teamDoc = await getDoc(teamDocRef);
         if (teamDoc.exists()) {
-          router.push(`/game/${activeTeamId}`);
+           const activePlayer = localStorage.getItem(`pathfinder-player-${activeTeamId}`);
+           // If we know the player, we can redirect. Otherwise, we need to ask.
+           if (activePlayer) {
+                router.push(`/game/${activeTeamId}`);
+           } else {
+                setTeam({ id: teamDoc.id, ...teamDoc.data() } as Team);
+           }
         } else {
           // Team was deleted, clear local storage
           localStorage.removeItem('pathfinder-active-teamId');
           localStorage.removeItem(`pathfinder-player-${activeTeamId}`);
-          setIsCheckingSession(false);
         }
-      } else {
-        setIsCheckingSession(false);
       }
+      setIsCheckingSession(false);
     };
     checkActiveSession();
   }, [router]);
@@ -81,6 +85,7 @@ export default function StartGamePage() {
     setIsSubmitting(true);
     setError('');
     
+    // The secret code IS the team ID.
     const teamId = secretCode.trim();
     if (!teamId) {
         setError('Secret code cannot be empty.');
