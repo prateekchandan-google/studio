@@ -275,11 +275,14 @@ export default function GamePage() {
   
   // Camera Effect Hook
   useEffect(() => {
+    let localStream: MediaStream | null = null;
+  
     async function setupCamera() {
       if (!isCameraDialogOpen) return;
 
       try {
         const cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        localStream = cameraStream;
         setStream(cameraStream);
         setHasCameraPermission(true);
       } catch (error) {
@@ -296,10 +299,10 @@ export default function GamePage() {
     setupCamera();
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        setStream(null);
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
       }
+      setStream(null);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCameraDialogOpen]);
@@ -837,5 +840,3 @@ export default function GamePage() {
     </div>
   );
 }
-
-    
