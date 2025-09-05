@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { doc, onSnapshot, collection, query, orderBy, where, addDoc, updateDoc, writeBatch, serverTimestamp, getDoc, FieldValue, deleteField, increment, arrayUnion } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Puzzle, Team } from '@/lib/types';
+import type { Puzzle, Team, GameSettings } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +42,7 @@ export default function GamePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [puzzlesLoaded, setPuzzlesLoaded] = useState(false);
   const [teamLoaded, setTeamLoaded] = useState(false);
+  const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
   const [playerName, setPlayerName] = useState<string | null>(null);
   const [onlinePlayers, setOnlinePlayers] = useState<string[]>([]);
   
@@ -76,6 +77,18 @@ export default function GamePage() {
     router.push('/');
   };
   
+  useEffect(() => {
+    const settingsRef = doc(db, 'settings', 'game');
+    const unsubscribe = onSnapshot(settingsRef, (doc) => {
+        if (doc.exists()) {
+            setGameSettings(doc.data() as GameSettings);
+        } else {
+            setGameSettings({ isStarted: false });
+        }
+    });
+    return () => unsubscribe();
+  }, []);
+
   useEffect(() => {
     if (!team || team.pathId === undefined) return;
     
@@ -223,10 +236,10 @@ export default function GamePage() {
   }, [teamId, toast]);
 
   useEffect(() => {
-    if((puzzlesLoaded && teamLoaded) || (teamLoaded && team?.pathId === undefined)) {
+    if((puzzlesLoaded && teamLoaded && gameSettings !== null) || (teamLoaded && team?.pathId === undefined)) {
         setIsLoading(false);
     }
-  }, [puzzlesLoaded, teamLoaded, team]);
+  }, [puzzlesLoaded, teamLoaded, gameSettings, team]);
 
   useEffect(() => {
     if (puzzles.length > 0 && team !== undefined && team.currentPuzzleIndex < puzzles.length) {
@@ -240,7 +253,7 @@ export default function GamePage() {
 
   useEffect(() => {
     const isPaused = !!team?.currentSubmissionId;
-    if(!team || isPaused || isLoading || (team.currentPuzzleIndex >= puzzles.length && puzzles.length > 0)) return;
+    if(!team || isPaused || isLoading || !gameSettings?.isStarted || (team.currentPuzzleIndex >= puzzles.length && puzzles.length > 0)) return;
 
     const timer = setInterval(() => {
         // Overall Game Timer
@@ -268,7 +281,7 @@ export default function GamePage() {
 
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [team, isLoading, puzzles]);
+  }, [team, isLoading, puzzles, gameSettings]);
   
   // Camera Effect Hook
   useEffect(() => {
@@ -571,7 +584,7 @@ export default function GamePage() {
     </div>
   );
   
-  if (puzzles.length === 0 || team.pathId === undefined) {
+  if (!gameSettings?.isStarted) {
     return (
       <div className="container mx-auto py-8 px-4">
         {renderHeader()}
@@ -583,7 +596,7 @@ export default function GamePage() {
                 </div>
               <CardTitle className="font-headline text-2xl">Game Has Not Started Yet</CardTitle>
               <CardDescription>
-                Please wait for the game to start.
+                The game has not started yet, wait till 11th September Wednesday 2:00 PM
               </CardDescription>
             </CardHeader>
             <CardFooter>

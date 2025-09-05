@@ -1,5 +1,4 @@
 
-
 import type { Timestamp } from 'firebase/firestore';
 
 export interface Team {
@@ -42,4 +41,7 @@ export interface Submission {
   submittedBy?: string;
 }
 
-    
+export interface GameSettings {
+    isStarted: boolean;
+    startTime?: Timestamp;
+}

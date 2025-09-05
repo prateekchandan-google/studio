@@ -6,9 +6,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Team } from '@/lib/types';
+import type { Team, GameSettings } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,7 @@ export default function StartGamePage() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [team, setTeam] = useState<Team | null>(null);
+  const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [showStartTimerDialog, setShowStartTimerDialog] = useState(false);
@@ -41,6 +42,18 @@ export default function StartGamePage() {
       secretCode: '',
     },
   });
+
+  useEffect(() => {
+    const settingsRef = doc(db, 'settings', 'game');
+    const unsubscribe = onSnapshot(settingsRef, (doc) => {
+        if (doc.exists()) {
+            setGameSettings(doc.data() as GameSettings);
+        } else {
+            setGameSettings({ isStarted: false });
+        }
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const checkActiveSession = async () => {
@@ -68,6 +81,12 @@ export default function StartGamePage() {
     setIsSubmitting(true);
     setError('');
     
+    if (gameSettings && !gameSettings.isStarted) {
+        setError('The game has not started yet. Please wait for the admin to begin.');
+        setIsSubmitting(false);
+        return;
+    }
+
     const teamId = secretCode.trim();
     if (!teamId) {
         setError('Secret code cannot be empty.');
@@ -100,7 +119,7 @@ export default function StartGamePage() {
         handleLogin(codeFromQuery);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, form]);
+  }, [searchParams, form, gameSettings]);
 
   const handleMemberSelectAndGo = async () => {
     if (team && selectedMember) {
@@ -128,7 +147,7 @@ export default function StartGamePage() {
     }
   }
 
-  if (isCheckingSession) {
+  if (isCheckingSession || gameSettings === null) {
     return (
         <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
             <Loader className="w-12 h-12 animate-spin text-primary" />
@@ -197,8 +216,8 @@ export default function StartGamePage() {
   return (
     <div className="relative min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-4">
        <div 
-        className="absolute inset-0 bg-cover bg-center bg-repeat"
-        style={{ backgroundImage: "url('/treasure-map-background.png')" }}
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/treasure-map-background.jpg')" }}
         >
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       </div>
