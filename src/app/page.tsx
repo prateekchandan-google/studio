@@ -124,13 +124,8 @@ export default function StartGamePage() {
         const isFirstPlayer = !team.gameStartTime;
 
         if (isGameActive && isFirstPlayer) {
-            // First player logs in after game has started - start the timer for the team
-            const teamRef = doc(db, "teams", team.id);
-            await updateDoc(teamRef, {
-                gameStartTime: serverTimestamp(),
-                currentPuzzleStartTime: serverTimestamp()
-            });
-            setShowStartTimerDialog(true); // Show the dialog to this first player
+            // First player logs in after game has started - show the dialog to start timer
+            setShowStartTimerDialog(true);
         } else {
             // Either game hasn't started, or timer is already running for the team
             router.push(`/game/${team.id}`);
@@ -140,10 +135,15 @@ export default function StartGamePage() {
     }
   }
 
-  const proceedToGame = () => {
-    if (team) {
-      router.push(`/game/${team.id}`);
-    }
+  const startTimerAndProceed = async () => {
+      if (team) {
+          const teamRef = doc(db, "teams", team.id);
+          await updateDoc(teamRef, {
+              gameStartTime: serverTimestamp(),
+              currentPuzzleStartTime: serverTimestamp()
+          });
+          router.push(`/game/${team.id}`);
+      }
   }
 
   if (isCheckingSession || gameSettings === null) {
@@ -168,7 +168,7 @@ export default function StartGamePage() {
                             You are the first member of your team to log in. The 60-minute timer for your treasure hunt starts now. Good luck!
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogAction onClick={proceedToGame} className="w-full">
+                    <AlertDialogAction onClick={startTimerAndProceed} className="w-full">
                         Let's Go!
                     </AlertDialogAction>
                 </AlertDialogContent>
