@@ -8,7 +8,8 @@ export interface Team {
   riddlesSolved: number;
   currentPuzzleIndex: number;
   secretCode: string;
-  pathId?: number; 
+  pathId?: number;
+  currentSubmissionId?: string | null;
 }
 
 export interface Puzzle {
@@ -16,9 +17,9 @@ export interface Puzzle {
   title: string;
   puzzle:string;
   hint?: string;
-  solution: string;
-  pathId: number;
-  order: number;
+  solution?: string; // Solution is not needed on the client for gameplay
+  pathId?: number;
+  order?: number;
 }
 
 export interface Submission {
@@ -33,5 +34,3 @@ export interface Submission {
   timestamp: Date;
   submittedBy?: string;
 }
-
-    

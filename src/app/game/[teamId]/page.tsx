@@ -1,11 +1,12 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { doc, onSnapshot, collection, query, orderBy, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { doc, onSnapshot, collection, query, orderBy, where, addDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase';
 import type { Puzzle, Team } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,8 +21,9 @@ import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy,
 import QRCode from "react-qr-code";
 
 
-const HINT_TIME = 5 * 60; // 5 minutes in seconds
-const SKIP_TIME = 10 * 60; // 10 minutes in seconds
+const HINT_PENALTY = 5;
+const SKIP_PENALTY = 0; // No points awarded, but no deduction
+const PUZZLE_REWARD = 10;
 const PUZZLE_DURATION = 15 * 60; // 15 minutes in seconds
 
 export default function GamePage() {
@@ -33,6 +35,7 @@ export default function GamePage() {
   const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle | undefined>();
   const [timeLeft, setTimeLeft] = useState(PUZZLE_DURATION);
   const [isPaused, setIsPaused] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [loginUrl, setLoginUrl] = useState('');
   const [hasCopied, setHasCopied] = useState(false);
@@ -74,7 +77,7 @@ export default function GamePage() {
     
     return () => unsubscribePuzzles();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [team]);
+  }, [team?.pathId]);
 
   useEffect(() => {
     if (!teamId) {
@@ -88,7 +91,21 @@ export default function GamePage() {
     const unsubscribeTeam = onSnapshot(teamDocRef, (doc) => {
       if (doc.exists()) {
         const teamData = { id: doc.id, ...doc.data() } as Team;
+        const prevSubmissionId = team?.currentSubmissionId;
+        
         setTeam(teamData);
+
+        if (prevSubmissionId && !teamData.currentSubmissionId) {
+            setIsPaused(false);
+            setTimeLeft(PUZZLE_DURATION);
+            setShowHint(false);
+            toast({
+                title: 'Submission Rejected',
+                description: "Your answer wasn't quite right. The timer has restarted. Try again!",
+                variant: 'destructive',
+            })
+        }
+
         if (teamData.secretCode && typeof window !== 'undefined') {
             setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(teamData.secretCode)}`);
         }
@@ -118,14 +135,16 @@ export default function GamePage() {
   }, [teamId]);
 
   useEffect(() => {
-    if((puzzlesLoaded && teamLoaded) || (teamLoaded && !team?.pathId)) {
+    if((puzzlesLoaded && teamLoaded) || (teamLoaded && team?.pathId === undefined)) {
         setIsLoading(false);
+    }
+    if (team?.currentSubmissionId) {
+      setIsPaused(true);
     }
   }, [puzzlesLoaded, teamLoaded, team]);
 
   useEffect(() => {
     if (puzzles.length > 0 && team !== undefined) {
-      // Ensure currentPuzzleIndex is valid
       const puzzleIndex = team.currentPuzzleIndex < puzzles.length ? team.currentPuzzleIndex : 0;
       setCurrentPuzzle(puzzles[puzzleIndex]);
     } else {
@@ -135,14 +154,9 @@ export default function GamePage() {
 
 
   useEffect(() => {
-    if(!team || isPaused || isLoading) return;
+    if(!team || isPaused || isLoading || isSubmitting) return;
 
     if (timeLeft <= 0) {
-      toast({
-        title: "Time's Up!",
-        description: "Moving to the next puzzle automatically.",
-        variant: 'destructive',
-      });
       handleSkip();
       return;
     }
@@ -152,42 +166,95 @@ export default function GamePage() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, isPaused, team, isLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, isPaused, team, isLoading, isSubmitting]);
 
-  const handleHint = () => {
+  const handleHint = async () => {
     if (!team) return;
     setShowHint(true);
-    // In a real app, this score update would be an atomic operation on the server.
-    // For now, we are not updating score on hints.
+    const teamRef = doc(db, 'teams', team.id);
+    await updateDoc(teamRef, { score: team.score - HINT_PENALTY });
     toast({
       title: 'Hint Unlocked!',
-      description: '5 points have been deducted.',
+      description: `${HINT_PENALTY} points have been deducted.`,
     });
   };
   
-  const handleSkip = () => {
+  const handleSkip = async () => {
     if (!team || puzzles.length === 0) return;
-      const nextPuzzleIndex = (team.currentPuzzleIndex + 1) % puzzles.length;
-      // This should also be an atomic server update
-      setTeam(t => t ? ({...t, currentPuzzleIndex: nextPuzzleIndex}) : undefined);
-      setCurrentPuzzle(puzzles[nextPuzzleIndex]);
+      const nextPuzzleIndex = team.currentPuzzleIndex + 1;
+      
+      if (nextPuzzleIndex >= puzzles.length) {
+          toast({ title: 'Congratulations!', description: "You've completed all puzzles on this path!" });
+          // Handle game completion logic
+          return;
+      }
+      
+      const batch = writeBatch(db);
+      const teamRef = doc(db, 'teams', team.id);
+      batch.update(teamRef, {
+          currentPuzzleIndex: nextPuzzleIndex,
+          score: team.score - SKIP_PENALTY,
+          currentSubmissionId: null,
+      });
+
+      await batch.commit();
+
       setTimeLeft(PUZZLE_DURATION);
       setShowHint(false);
+      setIsPaused(false);
       toast({
           title: 'Puzzle Skipped',
-          description: `No points awarded. On to the next challenge!`,
+          description: `On to the next challenge!`,
       });
   };
   
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
-      setIsPaused(true);
-      toast({
-          title: 'Submission Received!',
-          description: 'Your answer is now under review. The timer has been paused.',
-      });
-      // Here you would create the submission object and save to firestore
-      // including the playerName state
+      if (!team || !currentPuzzle || !playerName) return;
+
+      setIsSubmitting(true);
+
+      const form = e.target as HTMLFormElement;
+      const formData = new FormData(form);
+      const textSubmission = formData.get('text-answer') as string;
+      const imageFile = formData.get('image-answer') as File;
+
+      let imageSubmissionUrl: string | undefined = undefined;
+
+      try {
+        if (imageFile && imageFile.size > 0) {
+            const storageRef = ref(storage, `submissions/${team.id}/${Date.now()}-${imageFile.name}`);
+            const snapshot = await uploadBytes(storageRef, imageFile);
+            imageSubmissionUrl = await getDownloadURL(snapshot.ref);
+        }
+
+        const submissionData = {
+            teamId: team.id,
+            teamName: team.name,
+            puzzleId: currentPuzzle.id,
+            puzzleTitle: currentPuzzle.title,
+            textSubmission,
+            imageSubmissionUrl,
+            status: 'pending',
+            timestamp: new Date(),
+            submittedBy: playerName,
+        };
+
+        const submissionDocRef = await addDoc(collection(db, 'submissions'), submissionData);
+        await updateDoc(doc(db, 'teams', team.id), { currentSubmissionId: submissionDocRef.id });
+
+        setIsPaused(true);
+        toast({
+            title: 'Submission Received!',
+            description: 'Your answer is now under review. The timer has been paused.',
+        });
+      } catch (error) {
+        console.error("Submission failed:", error);
+        toast({ title: 'Submission Failed', description: 'Could not submit your answer. Please try again.', variant: 'destructive'});
+      } finally {
+        setIsSubmitting(false);
+      }
   };
 
   const formatTime = (seconds: number) => {
@@ -229,9 +296,6 @@ export default function GamePage() {
             <CardFooter className="flex-col gap-4">
               <Button asChild className="w-full">
                 <Link href="/">Try Login Again</Link>
-              </Button>
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/register">Register a New Team</Link>
               </Button>
             </CardFooter>
           </Card>
@@ -294,8 +358,8 @@ export default function GamePage() {
       </div>
     </div>
   );
-
-  if (puzzles.length === 0) {
+  
+  if (puzzles.length === 0 || team.pathId === undefined) {
     return (
       <div className="container mx-auto py-8 px-4">
         {renderHeader()}
@@ -310,7 +374,7 @@ export default function GamePage() {
                 Please wait for 11th September 2:00 PM for game to start
               </CardDescription>
             </CardHeader>
-            <CardFooter className="flex-col gap-4">
+            <CardFooter>
               <Button onClick={handleExitGame} className="w-full">
                 <LogOut className="mr-2 h-4 w-4" /> Go to Homepage
               </Button>
@@ -329,8 +393,8 @@ export default function GamePage() {
     )
   }
 
-  const canShowHint = timeLeft <= PUZZLE_DURATION - HINT_TIME;
-  const canSkip = timeLeft <= PUZZLE_DURATION - SKIP_TIME;
+  const canShowHint = timeLeft <= PUZZLE_DURATION - (5 * 60);
+  const canSkip = timeLeft <= PUZZLE_DURATION - (10 * 60);
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -362,7 +426,7 @@ export default function GamePage() {
             <CardFooter className="flex flex-col sm:flex-row gap-2">
                 <Button variant="outline" onClick={handleHint} disabled={!canShowHint || showHint || !currentPuzzle.hint}>
                     <Lightbulb className="mr-2 h-4 w-4" />
-                    {showHint ? 'Hint Revealed' : `Get Hint (-5 pts)`}
+                    {showHint ? 'Hint Revealed' : `Get Hint (-${HINT_PENALTY} pts)`}
                 </Button>
                 <Button variant="secondary" onClick={handleSkip} disabled={!canSkip}>
                     <SkipForward className="mr-2 h-4 w-4" />
@@ -391,17 +455,17 @@ export default function GamePage() {
                     )}
                     <div className="space-y-2">
                         <Label htmlFor="text-answer">Your reasoning</Label>
-                        <Textarea id="text-answer" placeholder="Explain how you solved the riddle..." required disabled={isPaused}/>
+                        <Textarea id="text-answer" name="text-answer" placeholder="Explain how you solved the riddle..." required disabled={isPaused || isSubmitting}/>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="image-answer">Supporting photo (optional)</Label>
-                        <Input id="image-answer" type="file" accept="image/*" disabled={isPaused} />
+                        <Input id="image-answer" name="image-answer" type="file" accept="image/*" disabled={isPaused || isSubmitting} />
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button type="submit" className="w-full" disabled={isPaused}>
-                        <Send className="mr-2 h-4 w-4"/>
-                        {isPaused ? 'Submitted for Review' : 'Submit Answer'}
+                    <Button type="submit" className="w-full" disabled={isPaused || isSubmitting}>
+                        {isSubmitting ? <Loader className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
+                        {isPaused ? 'Submitted for Review' : isSubmitting ? 'Submitting...' : 'Submit Answer'}
                     </Button>
                 </CardFooter>
             </form>
@@ -411,5 +475,3 @@ export default function GamePage() {
     </div>
   );
 }
-
-    

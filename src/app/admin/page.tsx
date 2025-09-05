@@ -2,14 +2,17 @@
 "use client";
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { submissions as initialSubmissions } from "@/lib/data";
-import type { Submission } from "@/lib/types";
+import { db } from "@/lib/firebase";
+import type { Submission, Team } from "@/lib/types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, Bot, Loader, UserCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { analyzeSubmission } from "@/ai/flows/submission-analyzer";
+import { collection, query, where, onSnapshot, orderBy, writeBatch, doc, increment } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
+
 
 type SubmissionWithAI = Submission & {
   aiAnalysis?: string;
@@ -17,17 +20,63 @@ type SubmissionWithAI = Submission & {
   isAnalyzing?: boolean;
 };
 
+const PUZZLE_REWARD = 10;
+
 export default function AdminDashboardPage() {
   const [submissions, setSubmissions] = useState<SubmissionWithAI[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // In a real app, you would fetch this from Firestore
-    setSubmissions(initialSubmissions.map(s => ({...s, submittedBy: s.submittedBy || 'Unknown Player'})));
-  }, [])
+    const submissionsQuery = query(
+        collection(db, 'submissions'), 
+        where('status', '==', 'pending'),
+        orderBy('timestamp', 'asc')
+    );
+    
+    const unsubscribe = onSnapshot(submissionsQuery, (snapshot) => {
+        const subs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SubmissionWithAI));
+        setSubmissions(subs);
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Failed to fetch submissions:", error);
+        toast({ title: 'Error', description: 'Could not fetch submissions.', variant: 'destructive'});
+        setIsLoading(false);
+    });
 
-  const handleDecision = (submissionId: string, decision: "approved" | "rejected") => {
-    setSubmissions((prev) => prev.filter((sub) => sub.id !== submissionId));
-    console.log(`Submission ${submissionId} has been ${decision}.`);
+    return () => unsubscribe();
+  }, [toast]);
+
+  const handleDecision = async (submissionId: string, teamId: string, decision: "approved" | "rejected") => {
+    const batch = writeBatch(db);
+    const submissionRef = doc(db, "submissions", submissionId);
+    const teamRef = doc(db, "teams", teamId);
+
+    if (decision === "approved") {
+        batch.update(submissionRef, { status: "approved" });
+        batch.update(teamRef, { 
+            score: increment(PUZZLE_REWARD),
+            riddlesSolved: increment(1),
+            currentPuzzleIndex: increment(1),
+            currentSubmissionId: null,
+        });
+    } else { // rejected
+        batch.update(submissionRef, { status: "rejected" });
+        batch.update(teamRef, {
+            currentSubmissionId: null,
+        });
+    }
+    
+    try {
+        await batch.commit();
+        toast({
+            title: `Submission ${decision}`,
+            description: `The team has been notified.`,
+        });
+    } catch (error) {
+        console.error(`Failed to ${decision} submission:`, error);
+        toast({ title: 'Error', description: 'Could not process decision.', variant: 'destructive'});
+    }
   };
 
   const runAnalysis = async (submissionId: string) => {
@@ -51,7 +100,7 @@ export default function AdminDashboardPage() {
     <div className="container mx-auto py-8 px-4">
       <header className="mb-8">
         <div>
-            <h1 className="text-4xl font-headline font-bold tracking-tight lg:text-5xl">
+            <h1 className="text-4xl font.headline font-bold tracking-tight lg:text-5xl">
             Submission Review
             </h1>
             <p className="mt-2 text-lg text-muted-foreground">
@@ -60,20 +109,24 @@ export default function AdminDashboardPage() {
         </div>
       </header>
 
-      {submissions.length > 0 ? (
+      {isLoading ? (
+         <div className="flex items-center justify-center min-h-[calc(100vh-20rem)]">
+            <Loader className="w-12 h-12 animate-spin text-primary" />
+        </div>
+      ) : submissions.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {submissions.map((submission) => (
             <Card key={submission.id} className="flex flex-col">
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="font-headline">{submission.teamName}</CardTitle>
+                    <CardTitle className="font.headline">{submission.teamName}</CardTitle>
                     <CardDescription>
                       Puzzle: {submission.puzzleTitle}
                     </CardDescription>
                   </div>
                   <Badge variant="secondary">
-                    {formatDistanceToNow(submission.timestamp, { addSuffix: true })}
+                    {formatDistanceToNow(new Date(submission.timestamp as any), { addSuffix: true })}
                   </Badge>
                 </div>
                  {submission.submittedBy && (
@@ -118,14 +171,14 @@ export default function AdminDashboardPage() {
               <CardFooter className="flex gap-2">
                 <Button
                   className="w-full"
-                  onClick={() => handleDecision(submission.id, "approved")}
+                  onClick={() => handleDecision(submission.id, submission.teamId, "approved")}
                 >
                   <Check className="w-4 h-4 mr-2" /> Approve
                 </Button>
                 <Button
                   variant="destructive"
                   className="w-full"
-                  onClick={() => handleDecision(submission.id, "rejected")}
+                  onClick={() => handleDecision(submission.id, submission.teamId, "rejected")}
                 >
                   <X className="w-4 h-4 mr-2" /> Reject
                 </Button>
