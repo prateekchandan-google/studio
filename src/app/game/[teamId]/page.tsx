@@ -67,18 +67,6 @@ export default function GamePage() {
 
   const { toast } = useToast();
 
-  // Debugging logs
-  useEffect(() => {
-    console.log('Game Page State Update:', {
-        isLoading,
-        teamExists: !!team,
-        puzzlesCount: puzzles.length,
-        gameSettingsExists: !!gameSettings,
-        currentPuzzleExists: !!currentPuzzle,
-    });
-  }, [isLoading, team, puzzles, gameSettings, currentPuzzle]);
-
-
   const handleExitGame = async () => {
     if (playerName) {
         const teamRef = doc(db, 'teams', teamId);
@@ -92,15 +80,12 @@ export default function GamePage() {
   };
   
   useEffect(() => {
-    console.log('Setting up settings listener...');
     const settingsRef = doc(db, 'settings', 'game');
     const unsubscribe = onSnapshot(settingsRef, (doc) => {
         if (doc.exists()) {
             const newSettings = doc.data() as GameSettings;
-            console.log('Game settings loaded:', newSettings);
             setGameSettings(newSettings);
         } else {
-            console.log('Game settings document does not exist.');
             setGameSettings({ isStarted: false });
         }
     });
@@ -108,15 +93,15 @@ export default function GamePage() {
   }, []);
 
   useEffect(() => {
-      if (gameSettings) {
-          const gameJustStarted = prevGameStartedRef.current === false && gameSettings.isStarted === true;
-          if (gameJustStarted && team && !team.gameStartTime) {
-              console.log('Game just started live, showing dialog.');
-              setShowLiveStartDialog(true);
-          }
-          prevGameStartedRef.current = gameSettings.isStarted;
+    if (gameSettings) {
+      const gameJustStarted = prevGameStartedRef.current === false && gameSettings.isStarted === true;
+      if (gameJustStarted && team && !team.gameStartTime) {
+        setShowLiveStartDialog(true);
       }
+      prevGameStartedRef.current = gameSettings.isStarted;
+    }
   }, [gameSettings, team]);
+
 
   const handleStartTimer = async () => {
       if (!team) return;
@@ -131,7 +116,6 @@ export default function GamePage() {
   // Master data fetching effect for team
   useEffect(() => {
     if (!teamId) {
-      console.log('No teamId, setting isLoading to false.');
       setIsLoading(false);
       return;
     }
@@ -139,7 +123,6 @@ export default function GamePage() {
     setPlayerName(localStorage.getItem(`pathfinder-player-${teamId}`));
   
     const teamDocRef = doc(db, 'teams', teamId);
-    console.log(`Setting up team listener for teamId: ${teamId}`);
   
     const unsubscribeTeam = onSnapshot(teamDocRef, (teamDoc) => {
       if (!teamDoc.exists()) {
@@ -150,14 +133,12 @@ export default function GamePage() {
           variant: "destructive",
           duration: 5000,
         });
-        console.log('Team not found, logging out.');
         handleExitGame();
         setIsLoading(false);
         return;
       }
   
       const teamData = { id: teamDoc.id, ...teamDoc.data() } as Team;
-      console.log('Team data loaded:', teamData);
 
        // Check for rejection/approval toasts
         if (prevSubmissionIdRef.current && !teamData.currentSubmissionId && prevPuzzleIndexRef.current === teamData.currentPuzzleIndex) {
@@ -193,11 +174,7 @@ export default function GamePage() {
         setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(teamData.secretCode)}`);
       }
   
-      // This is a key change: ensure loading is false only after team is set.
-      if (isLoading) {
-        console.log('Team data has been set, setting isLoading to false.');
-        setIsLoading(false);
-      }
+      setIsLoading(false);
 
     }, (error) => {
       console.error("Error fetching team:", error);
@@ -207,7 +184,6 @@ export default function GamePage() {
     });
   
     return () => {
-        console.log('Unsubscribing from team listener.');
         unsubscribeTeam();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -216,7 +192,6 @@ export default function GamePage() {
   // Puzzle fetching effect, dependent on team
   useEffect(() => {
       if (team && team.pathId !== undefined) {
-          console.log(`Team has pathId ${team.pathId}, fetching puzzles.`);
           const puzzlesQuery = query(
               collection(db, 'puzzles'),
               where('pathId', '==', team.pathId),
@@ -224,18 +199,15 @@ export default function GamePage() {
           );
           const unsubscribePuzzles = onSnapshot(puzzlesQuery, (puzzlesSnapshot) => {
               const puzzlesData = puzzlesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
-              console.log(`Puzzles loaded for pathId ${team.pathId}:`, puzzlesData.length);
               setPuzzles(puzzlesData);
           }, (error) => {
               console.error("Error fetching puzzles:", error);
               toast({ title: "Error", description: "Could not load puzzle data.", variant: "destructive" });
           });
           return () => {
-            console.log('Unsubscribing from puzzles listener.');
             unsubscribePuzzles();
           };
       } else {
-          console.log('Team data is present, but no pathId found. Not fetching puzzles.');
           setPuzzles([]);
       }
   }, [team, toast]);
@@ -289,7 +261,7 @@ export default function GamePage() {
 
   useEffect(() => {
     const isPaused = !!team?.currentSubmissionId;
-    if(!team || isPaused || isLoading || !gameSettings?.isStarted || (team.currentPuzzleIndex >= puzzles.length && puzzles.length > 0)) return;
+    if(!team || isPaused || isLoading || !gameSettings?.isStarted || !team.gameStartTime || (team.currentPuzzleIndex >= puzzles.length && puzzles.length > 0)) return;
 
     const timer = setInterval(() => {
         // Overall Game Timer
@@ -620,7 +592,7 @@ export default function GamePage() {
     </div>
   );
   
-  if (!gameSettings?.isStarted) {
+  if (!gameSettings?.isStarted || !team.gameStartTime) {
     return (
       <div className="container mx-auto py-8 px-4">
         {renderHeader()}
@@ -649,7 +621,7 @@ export default function GamePage() {
                 </div>
               <CardTitle className="font-headline text-2xl">Game Has Not Started Yet</CardTitle>
               <CardDescription>
-                The game has not started yet, wait till 11th September Wednesday 2:00 PM
+                The game has not started yet, wait till 11th September Wednesday 2:00 PM. If the admin has started the game, please wait a moment.
               </CardDescription>
             </CardHeader>
             <CardFooter>
@@ -938,7 +910,3 @@ export default function GamePage() {
     </div>
   );
 }
-
-    
-
-    
