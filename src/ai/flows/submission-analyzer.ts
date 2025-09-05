@@ -1,3 +1,4 @@
+'use server';
 // This is a dummy flow. You can import from it but do not modify it.
 
 export async function analyzeSubmission(
