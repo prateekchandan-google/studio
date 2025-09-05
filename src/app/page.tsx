@@ -49,7 +49,7 @@ export default function StartGamePage() {
         if (doc.exists()) {
             setGameSettings(doc.data() as GameSettings);
         } else {
-            setGameSettings({ isStarted: false });
+            setGameSettings({ isStarted: false, isRegistrationOpen: false });
         }
     });
     return () => unsubscribe();
@@ -272,28 +272,34 @@ export default function StartGamePage() {
                       </>
                   )}
                 </Button>
-                <div className="relative w-full flex items-center">
-                    <div className="flex-grow border-t border-muted-foreground/20"></div>
-                    <span className="flex-shrink mx-4 text-xs text-muted-foreground uppercase">Or</span>
-                    <div className="flex-grow border-t border-muted-foreground/20"></div>
-                </div>
-                <Button type="button" variant="secondary" className="w-full" asChild>
-                  <Link href="/register">
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Register New Team
-                  </Link>
-                </Button>
+                {gameSettings.isRegistrationOpen && (
+                    <>
+                        <div className="relative w-full flex items-center">
+                            <div className="flex-grow border-t border-muted-foreground/20"></div>
+                            <span className="flex-shrink mx-4 text-xs text-muted-foreground uppercase">Or</span>
+                            <div className="flex-grow border-t border-muted-foreground/20"></div>
+                        </div>
+                        <Button type="button" variant="secondary" className="w-full" asChild>
+                        <Link href="/register">
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Register New Team
+                        </Link>
+                        </Button>
+                    </>
+                )}
               </CardFooter>
             </form>
           </Form>
         ) : (
              <CardFooter className="flex flex-col gap-4">
-                <Button type="button" variant="secondary" className="w-full" asChild>
-                    <Link href="/register">
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Register New Team
-                    </Link>
-                </Button>
+                {gameSettings.isRegistrationOpen && (
+                    <Button type="button" variant="secondary" className="w-full" asChild>
+                        <Link href="/register">
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Register New Team
+                        </Link>
+                    </Button>
+                )}
             </CardFooter>
         )}
       </Card>

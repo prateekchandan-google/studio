@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { doc, setDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,12 +13,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { UserPlus, Users, X, Copy, Check, ArrowRight, Bot, Loader } from 'lucide-react';
+import { UserPlus, Users, X, Copy, Check, ArrowRight, Bot, Loader, TimerOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import type { Team } from '@/lib/types';
+import type { Team, GameSettings } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { generateTeamName } from '@/ai/flows/name-generator';
-
 
 const houseNames = ["Halwa", "Chamcham", "Jalebi", "Ladoo"] as const;
 
@@ -37,9 +36,10 @@ export default function RegistrationPage() {
   const [hasCopied, setHasCopied] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingName, setIsGeneratingName] = useState(false);
+  const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
   const router = useRouter();
   const { toast } = useToast();
-  
+
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
@@ -48,11 +48,23 @@ export default function RegistrationPage() {
     },
   });
 
+  useEffect(() => {
+    const settingsRef = doc(db, 'settings', 'game');
+    const unsubscribe = onSnapshot(settingsRef, (doc) => {
+        if (doc.exists()) {
+            setGameSettings(doc.data() as GameSettings);
+        } else {
+            setGameSettings({ isStarted: false, isRegistrationOpen: false });
+        }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "members",
   });
-  
+
   const handleGenerateName = async () => {
     const houseName = form.getValues('houseName');
     if (!houseName) {
@@ -70,7 +82,7 @@ export default function RegistrationPage() {
         const result = await generateTeamName({ houseName });
         if (result.teamName) {
             form.setValue('teamName', result.teamName);
-            toast({ title: "Name Suggested!", description: `How about "${result.teamName}"?` });
+            toast({ title: "Name Suggested!", description: `How about \"${result.teamName}\"?` });
         } else {
             toast({ title: "Could not generate name", description: "The AI was unable to suggest a name. Please try again.", variant: "destructive" });
         }
@@ -143,6 +155,14 @@ export default function RegistrationPage() {
     }
   }
 
+  if (gameSettings === null) {
+    return (
+        <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
+            <Loader className="w-12 h-12 animate-spin text-primary" />
+        </div>
+    )
+  }
+
   if (secretCode) {
     return (
         <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
@@ -171,13 +191,32 @@ export default function RegistrationPage() {
                 </CardContent>
                 <CardFooter>
                      <Button className="w-full" onClick={proceedToGame}>
-                        Proceed to Game Login <ArrowRight className="ml-2 h-4 w-4"/>
+                        Proceed to Game Login <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                 </CardFooter>
             </Card>
         </div>
     );
   }
+
+  if (!gameSettings.isRegistrationOpen) {
+    return (
+      <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+              <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
+                  <TimerOff className="w-8 h-8 text-primary" />
+              </div>
+              <CardTitle className="font-headline text-2xl">Registration Closed</CardTitle>
+              <CardDescription>
+                  We are no longer accepting new team registrations. Please contact the game master if you believe this is an error.
+              </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
 
   return (
     <div className="container mx-auto py-8 px-4 flex justify-center">

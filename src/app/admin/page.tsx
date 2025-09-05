@@ -11,7 +11,6 @@ import { doc, onSnapshot, updateDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import type { GameSettings } from "@/lib/types";
-import { Button } from "@/components/ui/button";
 
 const adminSections = [
     {
@@ -44,7 +43,7 @@ export default function AdminHomePage() {
             if (doc.exists()) {
                 setGameSettings(doc.data() as GameSettings);
             } else {
-                setGameSettings({ isStarted: false });
+                setGameSettings({ isStarted: false, isRegistrationOpen: false });
             }
         });
         return () => unsubscribe();
@@ -68,6 +67,20 @@ export default function AdminHomePage() {
         }
     };
 
+    const handleRegistrationToggle = async (isOpen: boolean) => {
+        const settingsRef = doc(db, 'settings', 'game');
+        try {
+            await updateDoc(settingsRef, { isRegistrationOpen: isOpen });
+            toast({
+                title: isOpen ? "Registration Opened" : "Registration Closed",
+                description: isOpen ? "Users can now register new teams." : "Users can no longer register.",
+            });
+        } catch (error) {
+            console.error("Failed to update registration status:", error);
+            toast({ title: 'Error', description: 'Could not update registration status.', variant: 'destructive' });
+        }
+    };
+
     return (
         <div className="space-y-8">
             <header>
@@ -85,22 +98,35 @@ export default function AdminHomePage() {
                         <Gamepad2 className="w-6 h-6" /> Game Control
                     </CardTitle>
                     <CardDescription>
-                        Use this master switch to start or stop the game for all players.
+                        Use these master switches to control the game state.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="flex items-center space-x-4">
-                     <Switch
-                        id="game-start-switch"
-                        checked={gameSettings?.isStarted || false}
-                        onCheckedChange={handleGameStartToggle}
-                        aria-readonly
-                    />
-                    <Label htmlFor="game-start-switch" className="text-lg">
-                        {gameSettings?.isStarted ? 'Game is Live' : 'Game is Stopped'}
-                    </Label>
+                <CardContent className="space-y-6">
+                    <div className="flex items-center space-x-4">
+                        <Switch
+                            id="game-start-switch"
+                            checked={gameSettings?.isStarted || false}
+                            onCheckedChange={handleGameStartToggle}
+                            aria-readonly
+                        />
+                        <Label htmlFor="game-start-switch" className="text-lg flex-grow">
+                            {gameSettings?.isStarted ? 'Game is Live' : 'Game is Stopped'}
+                        </Label>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                        <Switch
+                            id="registration-switch"
+                            checked={gameSettings?.isRegistrationOpen || false}
+                            onCheckedChange={handleRegistrationToggle}
+                            aria-readonly
+                        />
+                        <Label htmlFor="registration-switch" className="text-lg flex-grow">
+                            {gameSettings?.isRegistrationOpen ? 'Registration is Open' : 'Registration is Closed'}
+                        </Label>
+                    </div>
                 </CardContent>
                 {gameSettings?.isStarted && gameSettings.startTime && (
-                     <CardContent className="flex items-center gap-2 text-sm text-muted-foreground">
+                     <CardContent className="flex items-center gap-2 text-sm text-muted-foreground pt-0">
                         <Timer className="w-4 h-4" />
                         <span>Game started at: {new Date(gameSettings.startTime.toDate()).toLocaleString()}</span>
                     </CardContent>
