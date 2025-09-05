@@ -13,11 +13,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Sparkles, Trophy, Users } from 'lucide-react';
+import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Sparkles, Trophy, Users, Camera, CircleUserRound, Replace } from 'lucide-react';
 import QRCode from "react-qr-code";
+import Image from 'next/image';
 
 
 const HINT_PENALTY = 5;
@@ -52,6 +53,14 @@ export default function GamePage() {
 
   const prevSubmissionIdRef = useRef<string | null | undefined>();
   const prevPuzzleIndexRef = useRef<number | undefined>();
+
+  // Camera States
+  const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
 
   const { toast } = useToast();
@@ -263,6 +272,64 @@ export default function GamePage() {
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [team, isLoading, puzzles]);
+  
+  // Camera Effect Hook
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setHasCameraPermission(true);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        setIsStreaming(true);
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use this app.',
+        });
+      }
+    };
+
+    if (isCameraDialogOpen && !isStreaming) {
+      getCameraPermission();
+    }
+
+    return () => {
+      // Stop stream when component unmounts or dialog closes
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+        setIsStreaming(false);
+      }
+    };
+  }, [isCameraDialogOpen, isStreaming, toast]);
+  
+  const handleCapture = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      context?.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUri = canvas.toDataURL('image/jpeg');
+      setCapturedImage(dataUri);
+    }
+  };
+
+  const handleUsePhoto = () => {
+    setIsCameraDialogOpen(false);
+    // capturedImage is already set
+  };
+
+  const handleRetake = () => {
+    setCapturedImage(null);
+  };
+  
 
   const handleHint = async () => {
     if (!team) return;
@@ -356,7 +423,9 @@ export default function GamePage() {
         submittedBy: playerName,
       };
       
-      if (imageFile && imageFile.size > 0) {
+      if (capturedImage) {
+        submissionData.imageSubmissionDataUri = capturedImage;
+      } else if (imageFile && imageFile.size > 0) {
         submissionData.imageSubmissionDataUri = await fileToDataUri(imageFile);
       }
 
@@ -364,6 +433,7 @@ export default function GamePage() {
       await updateDoc(doc(db, 'teams', team.id), { currentSubmissionId: submissionDocRef.id });
 
       formEl.reset();
+      setCapturedImage(null);
       toast({
         title: 'Submission Received!',
         description: 'Your answer is now under review. The timer has been paused.',
@@ -680,7 +750,86 @@ export default function GamePage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="image-answer">Supporting photo (optional)</Label>
-                        <Input id="image-answer" name="image-answer" type="file" accept="image/*" disabled={isPaused || isSubmitting} />
+                        <div className="flex gap-2">
+                            <Input id="image-answer" name="image-answer" type="file" accept="image/*" disabled={isPaused || isSubmitting || !!capturedImage} />
+                             <Dialog open={isCameraDialogOpen} onOpenChange={(isOpen) => {
+                                setIsCameraDialogOpen(isOpen);
+                                if (!isOpen) {
+                                     // Stop video stream when dialog is closed
+                                    if (videoRef.current && videoRef.current.srcObject) {
+                                        const stream = videoRef.current.srcObject as MediaStream;
+                                        stream.getTracks().forEach(track => track.stop());
+                                        setIsStreaming(false);
+                                    }
+                                }
+                             }}>
+                                <DialogTrigger asChild>
+                                    <Button type="button" variant="outline" size="icon" disabled={isPaused || isSubmitting}>
+                                        <Camera />
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Take a Photo</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="flex flex-col items-center gap-4">
+                                        {capturedImage ? (
+                                            <Image src={capturedImage} alt="Captured" width={400} height={300} className="rounded-md" />
+                                        ) : (
+                                            <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted playsInline />
+                                        )}
+                                        {!hasCameraPermission && !capturedImage && (
+                                            <Alert variant="destructive">
+                                                <CircleUserRound className="h-4 w-4" />
+                                                <AlertTitle>Camera Permission Needed</AlertTitle>
+                                                <AlertDescription>
+                                                    Please allow camera access in your browser to take a photo.
+                                                </AlertDescription>
+                                            </Alert>
+                                        )}
+                                    </div>
+                                     <DialogFooter className="mt-4">
+                                        {capturedImage ? (
+                                            <>
+                                                <Button variant="outline" onClick={handleRetake}>
+                                                    <Replace className="mr-2 h-4 w-4" />
+                                                    Retake
+                                                </Button>
+                                                <Button onClick={handleUsePhoto}>
+                                                    <Check className="mr-2 h-4 w-4" />
+                                                    Use Photo
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <DialogClose asChild>
+                                                    <Button type="button" variant="ghost">Cancel</Button>
+                                                </DialogClose>
+                                                <Button onClick={handleCapture} disabled={!hasCameraPermission}>
+                                                    <Camera className="mr-2 h-4 w-4" />
+                                                    Capture
+                                                </Button>
+                                            </>
+                                        )}
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                        {capturedImage && (
+                            <div className="relative mt-2 border rounded-md p-2">
+                                <p className="text-sm font-medium mb-2">Photo to submit:</p>
+                                <Image src={capturedImage} alt="Photo to submit" width={200} height={150} className="rounded-md" />
+                                <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute top-2 right-2 h-6 w-6"
+                                    onClick={() => setCapturedImage(null)}
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        )}
+                        <canvas ref={canvasRef} className="hidden"></canvas>
                     </div>
                 </CardContent>
                 <CardFooter>
