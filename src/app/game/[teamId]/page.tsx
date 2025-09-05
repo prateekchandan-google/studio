@@ -112,7 +112,7 @@ export default function GamePage() {
       setShowLiveStartDialog(false);
   }
 
-  // Master data fetching effect
+  // Master data fetching effect for team
   useEffect(() => {
     if (!teamId) {
       setIsLoading(false);
@@ -173,28 +173,7 @@ export default function GamePage() {
         setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(teamData.secretCode)}`);
       }
   
-      // Now fetch puzzles if we have a pathId
-      if (teamData.pathId !== undefined) {
-        const puzzlesQuery = query(
-          collection(db, 'puzzles'),
-          where('pathId', '==', teamData.pathId),
-          orderBy('order', 'asc')
-        );
-        const unsubscribePuzzles = onSnapshot(puzzlesQuery, (puzzlesSnapshot) => {
-          const puzzlesData = puzzlesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
-          setPuzzles(puzzlesData);
-          setIsLoading(false); // Loading is complete ONLY after puzzles are fetched
-        }, (error) => {
-          console.error("Error fetching puzzles:", error);
-          toast({ title: "Error", description: "Could not load puzzle data.", variant: "destructive" });
-          setIsLoading(false);
-        });
-        return () => unsubscribePuzzles(); // This will be called on cleanup
-      } else {
-        // No pathId, so no puzzles to fetch. Loading is done.
-        setPuzzles([]);
-        setIsLoading(false);
-      }
+      setIsLoading(false); // Stop loading after essential team data is fetched
     }, (error) => {
       console.error("Error fetching team:", error);
       toast({ title: "Error", description: "Could not load team data.", variant: "destructive" });
@@ -205,6 +184,27 @@ export default function GamePage() {
     return () => unsubscribeTeam();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId, toast]);
+
+  // Puzzle fetching effect, dependent on team
+  useEffect(() => {
+      if (team && team.pathId !== undefined) {
+          const puzzlesQuery = query(
+              collection(db, 'puzzles'),
+              where('pathId', '==', team.pathId),
+              orderBy('order', 'asc')
+          );
+          const unsubscribePuzzles = onSnapshot(puzzlesQuery, (puzzlesSnapshot) => {
+              const puzzlesData = puzzlesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
+              setPuzzles(puzzlesData);
+          }, (error) => {
+              console.error("Error fetching puzzles:", error);
+              toast({ title: "Error", description: "Could not load puzzle data.", variant: "destructive" });
+          });
+          return () => unsubscribePuzzles();
+      } else {
+          setPuzzles([]);
+      }
+  }, [team, toast]);
 
   
   useEffect(() => {
