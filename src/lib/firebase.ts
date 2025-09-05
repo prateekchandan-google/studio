@@ -7,12 +7,12 @@ import { getStorage } from 'firebase/storage';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDBdw69_G1BgZxTQVMplfXyUqGluT7HxUY",
-  authDomain: "b0785d6b-0dd4-4617-b812-15a496914d78.firebaseapp.com",
-  projectId: "b0785d6b-0dd4-4617-b812-15a496914d78",
-  storageBucket: "b0785d6b-0dd4-4617-b812-15a496914d78.appspot.com",
-  messagingSenderId: "624941622563",
-  appId: "1:624941622563:web:b9571e86b115646a9fd896"
+  apiKey: "AIzaSyD_6j6rJypuTzhCO80OXkC8Fgj97XKiGow",
+  authDomain: "gtv-treasure-hunt-2025.firebaseapp.com",
+  projectId: "gtv-treasure-hunt-2025",
+  storageBucket: "gtv-treasure-hunt-2025.firebasestorage.app",
+  messagingSenderId: "806363809215",
+  appId: "1:806363809215:web:5ecad81315ebc2d58b4d0a"
 };
 
 // Initialize Firebase
