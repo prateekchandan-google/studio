@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Team } from "@/lib/types";
-import { Trophy, ShieldX, Loader } from "lucide-react";
+import { Trophy, ShieldX, Loader, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ScoreboardPage() {
@@ -125,7 +125,13 @@ export default function ScoreboardPage() {
                       {index + 1}
                     </span>
                   </TableCell>
-                  <TableCell className="font-medium">{team.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <div>{team.name}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-1">
+                      <Users className="w-3 h-3" />
+                      {team.members.join(', ')}
+                    </div>
+                  </TableCell>
                   <TableCell>{team.house}</TableCell>
                   <TableCell className="text-right">{team.riddlesSolved}</TableCell>
 
