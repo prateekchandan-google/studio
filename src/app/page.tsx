@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LogIn, Key, Users, UserCheck, Loader, Timer } from 'lucide-react';
+import { LogIn, Key, Users, UserCheck, Loader, Timer, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -195,8 +195,16 @@ export default function StartGamePage() {
 
 
   return (
-    <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
-      <Card className="w-full max-w-md">
+    <div className="relative min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-4">
+       <div 
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('https://picsum.photos/seed/treasure/1200/800')" }}
+        data-ai-hint="map background"
+        >
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      </div>
+
+      <Card className="w-full max-w-md z-10">
         <CardHeader className="text-center">
           <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
             <Key className="w-8 h-8 text-primary" />
@@ -239,12 +247,17 @@ export default function StartGamePage() {
                     </>
                 )}
               </Button>
-              <div className="text-center text-sm text-muted-foreground">
-                Don't have a code?{' '}
-                <Link href="/register" className="font-semibold text-primary underline-offset-4 hover:underline">
-                  Register your team
-                </Link>
+              <div className="relative w-full flex items-center">
+                  <div className="flex-grow border-t border-muted-foreground/20"></div>
+                  <span className="flex-shrink mx-4 text-xs text-muted-foreground uppercase">Or</span>
+                  <div className="flex-grow border-t border-muted-foreground/20"></div>
               </div>
+              <Button type="button" variant="secondary" className="w-full" asChild>
+                <Link href="/register">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Register New Team
+                </Link>
+              </Button>
             </CardFooter>
           </form>
         </Form>
