@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Sparkles, Trophy, Users, Camera, CircleUserRound, Replace, X, CheckCircle2, XCircle } from 'lucide-react';
 import QRCode from "react-qr-code";
 import Image from 'next/image';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 
 const HINT_PENALTY = 5;
@@ -50,9 +51,12 @@ export default function GamePage() {
   const [overallTimeLeft, setOverallTimeLeft] = useState(OVERALL_GAME_DURATION);
   const [hintTimeLeft, setHintTimeLeft] = useState(HINT_DELAY);
   const [skipTimeLeft, setSkipTimeLeft] = useState(SKIP_DELAY);
+  const [showLiveStartDialog, setShowLiveStartDialog] = useState(false);
 
   const prevSubmissionIdRef = useRef<string | null | undefined>();
   const prevPuzzleIndexRef = useRef<number | undefined>();
+  const prevGameStartedRef = useRef<boolean | undefined>();
+
 
   // Camera States
   const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
@@ -81,13 +85,34 @@ export default function GamePage() {
     const settingsRef = doc(db, 'settings', 'game');
     const unsubscribe = onSnapshot(settingsRef, (doc) => {
         if (doc.exists()) {
-            setGameSettings(doc.data() as GameSettings);
+            const newSettings = doc.data() as GameSettings;
+            setGameSettings(newSettings);
         } else {
             setGameSettings({ isStarted: false });
         }
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+      if (gameSettings) {
+          const gameJustStarted = prevGameStartedRef.current === false && gameSettings.isStarted === true;
+          if (gameJustStarted && team && !team.gameStartTime) {
+              setShowLiveStartDialog(true);
+          }
+          prevGameStartedRef.current = gameSettings.isStarted;
+      }
+  }, [gameSettings, team]);
+
+  const handleStartTimer = async () => {
+      if (!team) return;
+      const teamRef = doc(db, 'teams', team.id);
+      await updateDoc(teamRef, {
+          gameStartTime: serverTimestamp(),
+          currentPuzzleStartTime: serverTimestamp(),
+      });
+      setShowLiveStartDialog(false);
+  }
 
   useEffect(() => {
     if (!team || team.pathId === undefined) return;
@@ -588,6 +613,23 @@ export default function GamePage() {
     return (
       <div className="container mx-auto py-8 px-4">
         {renderHeader()}
+        <AlertDialog open={showLiveStartDialog} onOpenChange={setShowLiveStartDialog}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
+                        <Timer className="w-8 h-8 text-primary" />
+                    </div>
+                    <AlertDialogTitle className="font-headline text-2xl text-center">The Game Begins!</AlertDialogTitle>
+                    <AlertDialogDescription className="text-center">
+                        The admin has started the game. The 60-minute timer for your treasure hunt starts now. Good luck!
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogAction onClick={handleStartTimer} className="w-full">
+                    Let's Go!
+                </AlertDialogAction>
+            </AlertDialogContent>
+        </AlertDialog>
+
         <div className="flex justify-center items-center min-h-[calc(100vh-20rem)]">
           <Card className="w-full max-w-md text-center">
             <CardHeader>
@@ -885,3 +927,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
