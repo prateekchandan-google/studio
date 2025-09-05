@@ -81,12 +81,6 @@ export default function StartGamePage() {
     setIsSubmitting(true);
     setError('');
     
-    if (gameSettings && !gameSettings.isStarted) {
-        setError('The game has not started yet. Please wait for the admin to begin.');
-        setIsSubmitting(false);
-        return;
-    }
-
     const teamId = secretCode.trim();
     if (!teamId) {
         setError('Secret code cannot be empty.');
@@ -119,21 +113,26 @@ export default function StartGamePage() {
         handleLogin(codeFromQuery);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, form, gameSettings]);
+  }, [searchParams, form]);
 
   const handleMemberSelectAndGo = async () => {
     if (team && selectedMember) {
         localStorage.setItem(`pathfinder-player-${team.id}`, selectedMember);
         localStorage.setItem('pathfinder-active-teamId', team.id);
 
-        if (!team.gameStartTime) {
+        const isGameActive = gameSettings?.isStarted;
+        const isFirstPlayer = !team.gameStartTime;
+
+        if (isGameActive && isFirstPlayer) {
+            // First player logs in after game has started - start the timer for the team
             const teamRef = doc(db, "teams", team.id);
             await updateDoc(teamRef, {
                 gameStartTime: serverTimestamp(),
                 currentPuzzleStartTime: serverTimestamp()
             });
-            setShowStartTimerDialog(true);
+            setShowStartTimerDialog(true); // Show the dialog to this first player
         } else {
+            // Either game hasn't started, or timer is already running for the team
             router.push(`/game/${team.id}`);
         }
     } else {
@@ -283,3 +282,5 @@ export default function StartGamePage() {
     </div>
   );
 }
+
+    
