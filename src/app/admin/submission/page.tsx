@@ -29,68 +29,64 @@ const PUZZLE_REWARD = 20;
 
 export default function AdminDashboardPage() {
   const [submissions, setSubmissions] = useState<SubmissionWithDetails[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchTeamsAndPuzzles = async () => {
-      try {
-        const teamsQuery = query(collection(db, 'teams'));
-        const teamsSnapshot = await getDocs(teamsQuery);
-        const teamsData = teamsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
-        setTeams(teamsData);
+    const fetchInitialData = async () => {
+        try {
+            const teamsQuery = query(collection(db, 'teams'));
+            const teamsSnapshot = await getDocs(teamsQuery);
+            const teamsData = teamsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
 
-        const puzzlesQuery = query(collection(db, 'puzzles'));
-        const puzzlesSnapshot = await getDocs(puzzlesQuery);
-        const puzzlesData = puzzlesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
-        setPuzzles(puzzlesData);
-      } catch (error) {
-        console.error("Failed to fetch teams or puzzles:", error);
-        toast({ title: 'Error', description: 'Could not fetch supporting data.', variant: 'destructive' });
-      }
+            const puzzlesQuery = query(collection(db, 'puzzles'));
+            const puzzlesSnapshot = await getDocs(puzzlesQuery);
+            const puzzlesData = puzzlesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
+
+            const submissionsQuery = query(
+                collection(db, 'submissions'),
+                where('status', '==', 'pending'),
+                orderBy('timestamp', 'asc')
+            );
+
+            const unsubscribe = onSnapshot(submissionsQuery, (snapshot) => {
+                const subs = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    const submission = {
+                        id: doc.id,
+                        ...data,
+                        timestamp: data.timestamp.toDate()
+                    } as SubmissionWithAI;
+
+                    return {
+                      ...submission,
+                      team: teamsData.find(t => t.id === submission.teamId),
+                      puzzle: puzzlesData.find(p => p.id === submission.puzzleId)
+                    } as SubmissionWithDetails;
+                });
+                setSubmissions(subs);
+                setIsLoading(false);
+            }, (error) => {
+                console.error("Failed to fetch submissions:", error);
+                toast({ title: 'Error', description: 'Could not fetch submissions.', variant: 'destructive'});
+                setIsLoading(false);
+            });
+
+            return () => unsubscribe();
+        } catch (error) {
+            console.error("Failed to fetch teams or puzzles:", error);
+            toast({ title: 'Error', description: 'Could not fetch supporting data.', variant: 'destructive' });
+            setIsLoading(false);
+        }
     };
-    fetchTeamsAndPuzzles();
+
+    const unsubscribePromise = fetchInitialData();
+    
+    return () => {
+        unsubscribePromise.then(unsub => unsub && unsub());
+    };
   }, [toast]);
 
-  useEffect(() => {
-    if (puzzles.length === 0 || teams.length === 0) {
-      if (!isLoading) setIsLoading(true);
-      return;
-    };
-
-    const submissionsQuery = query(
-        collection(db, 'submissions'), 
-        where('status', '==', 'pending'),
-        orderBy('timestamp', 'asc')
-    );
-    
-    const unsubscribe = onSnapshot(submissionsQuery, (snapshot) => {
-        const subs = snapshot.docs.map(doc => {
-            const data = doc.data();
-            const submission = { 
-                id: doc.id, 
-                ...data, 
-                timestamp: data.timestamp.toDate() 
-            } as SubmissionWithAI;
-            
-            return {
-              ...submission,
-              team: teams.find(t => t.id === submission.teamId),
-              puzzle: puzzles.find(p => p.id === submission.puzzleId)
-            } as SubmissionWithDetails;
-        });
-        setSubmissions(subs);
-        setIsLoading(false);
-    }, (error) => {
-        console.error("Failed to fetch submissions:", error);
-        toast({ title: 'Error', description: 'Could not fetch submissions.', variant: 'destructive'});
-        setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [toast, puzzles, teams, isLoading]);
 
   const handleDecision = async (submissionId: string, teamId: string, decision: "approved" | "rejected") => {
     const batch = writeBatch(db);
