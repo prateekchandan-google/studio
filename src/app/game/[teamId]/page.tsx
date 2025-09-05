@@ -93,8 +93,8 @@ export default function GamePage() {
   }, []);
 
   useEffect(() => {
-    if (gameSettings) {
-      const gameJustStarted = prevGameStartedRef.current === false && gameSettings.isStarted === true;
+    if (gameSettings?.isStarted) {
+      const gameJustStarted = prevGameStartedRef.current !== true && gameSettings.isStarted === true;
       if (gameJustStarted && team && !team.gameStartTime) {
         setShowLiveStartDialog(true);
       }
