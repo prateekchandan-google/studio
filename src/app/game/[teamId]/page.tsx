@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { doc, onSnapshot, collection, query, orderBy } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, orderBy, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Puzzle, Team } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,7 +50,14 @@ export default function GamePage() {
   };
   
   useEffect(() => {
-    const puzzlesQuery = query(collection(db, 'puzzles'), orderBy('title', 'asc'));
+    if (!team || team.pathId === undefined) return;
+
+    const puzzlesQuery = query(
+      collection(db, 'puzzles'),
+      where('pathId', '==', team.pathId),
+      orderBy('order', 'asc')
+    );
+    
     const unsubscribePuzzles = onSnapshot(puzzlesQuery, (snapshot) => {
         const puzzlesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
         setPuzzles(puzzlesData);
@@ -67,7 +74,7 @@ export default function GamePage() {
     
     return () => unsubscribePuzzles();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [team]);
 
   useEffect(() => {
     if (!teamId) {
@@ -111,14 +118,18 @@ export default function GamePage() {
   }, [teamId]);
 
   useEffect(() => {
-    if(puzzlesLoaded && teamLoaded) {
+    if((puzzlesLoaded && teamLoaded) || (teamLoaded && !team?.pathId)) {
         setIsLoading(false);
     }
-  }, [puzzlesLoaded, teamLoaded])
+  }, [puzzlesLoaded, teamLoaded, team]);
 
   useEffect(() => {
     if (puzzles.length > 0 && team !== undefined) {
-      setCurrentPuzzle(puzzles[team.currentPuzzleIndex]);
+      // Ensure currentPuzzleIndex is valid
+      const puzzleIndex = team.currentPuzzleIndex < puzzles.length ? team.currentPuzzleIndex : 0;
+      setCurrentPuzzle(puzzles[puzzleIndex]);
+    } else {
+      setCurrentPuzzle(undefined);
     }
   }, [team, puzzles]);
 
@@ -292,18 +303,17 @@ export default function GamePage() {
           <Card className="w-full max-w-md text-center">
             <CardHeader>
                 <div className="mx-auto bg-accent/10 p-3 rounded-full mb-4 w-fit">
-                    <Wrench className="w-8 h-8 text-accent" />
+                    <Timer className="w-8 h-8 text-accent" />
                 </div>
-              <CardTitle className="font-headline text-2xl">Game Not Ready</CardTitle>
+              <CardTitle className="font-headline text-2xl">Game Has Not Started Yet</CardTitle>
               <CardDescription>
-                The Treasure Hunt is not set up yet. An admin needs to add puzzles before the game can begin.
+                Please wait for 11th September 2:00 PM for game to start
               </CardDescription>
             </CardHeader>
             <CardFooter className="flex-col gap-4">
               <Button onClick={handleExitGame} className="w-full">
                 <LogOut className="mr-2 h-4 w-4" /> Go to Homepage
               </Button>
-              <p className="text-xs text-muted-foreground">Admins can add puzzles <Link href="/admin/puzzles" className="underline">here</Link>.</p>
             </CardFooter>
           </Card>
         </div>
@@ -341,7 +351,7 @@ export default function GamePage() {
             <CardContent className="flex-grow">
               <p className="text-lg text-muted-foreground whitespace-pre-wrap">{currentPuzzle.puzzle}</p>
               
-              {showHint && (
+              {showHint && currentPuzzle.hint && (
                  <Alert className="mt-6 bg-accent/20 border-accent">
                     <Lightbulb className="h-4 w-4 text-accent-foreground" />
                     <AlertTitle className="font-bold text-accent-foreground">Hint</AlertTitle>
@@ -350,7 +360,7 @@ export default function GamePage() {
               )}
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row gap-2">
-                <Button variant="outline" onClick={handleHint} disabled={!canShowHint || showHint}>
+                <Button variant="outline" onClick={handleHint} disabled={!canShowHint || showHint || !currentPuzzle.hint}>
                     <Lightbulb className="mr-2 h-4 w-4" />
                     {showHint ? 'Hint Revealed' : `Get Hint (-5 pts)`}
                 </Button>
@@ -401,3 +411,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    

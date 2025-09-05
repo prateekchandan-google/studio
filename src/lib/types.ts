@@ -1,3 +1,4 @@
+
 export interface Team {
   id: string;
   name: string;
@@ -14,7 +15,7 @@ export interface Puzzle {
   id: string; 
   title: string;
   puzzle:string;
-  hint: string;
+  hint?: string;
   solution: string;
   pathId: number;
   order: number;
@@ -32,3 +33,5 @@ export interface Submission {
   timestamp: Date;
   submittedBy?: string;
 }
+
+    
