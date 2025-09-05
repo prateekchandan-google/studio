@@ -500,14 +500,19 @@ export default function GamePage() {
         <div className="lg:col-span-2">
           <Card className="h-full flex flex-col">
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="font-headline text-3xl">{currentPuzzle.title}</CardTitle>
+              <div className="flex justify-between items-start">
+                <div>
+                    <CardTitle className="font-headline text-3xl">{currentPuzzle.title}</CardTitle>
+                    <CardDescription className="mt-2 text-base font-semibold">
+                        Puzzle {team.currentPuzzleIndex + 1} / {puzzles.length}
+                    </CardDescription>
+                </div>
                 <div className="flex items-center gap-2 text-lg font-semibold text-primary">
                     <Timer className="h-6 w-6" />
                     <span>{formatTime(timeLeft)}</span>
                 </div>
               </div>
-              <Progress value={(timeLeft / PUZZLE_DURATION) * 100} className="w-full mt-2" />
+              <Progress value={(timeLeft / PUZZLE_DURATION) * 100} className="w-full mt-4" />
             </CardHeader>
             <CardContent className="flex-grow">
               <p className="text-lg text-muted-foreground whitespace-pre-wrap">{currentPuzzle.puzzle}</p>
