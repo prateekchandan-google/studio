@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Sparkles, Trophy, Users, Camera, CircleUserRound, Replace, X } from 'lucide-react';
+import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Sparkles, Trophy, Users, Camera, CircleUserRound, Replace, X, CheckCircle2, XCircle } from 'lucide-react';
 import QRCode from "react-qr-code";
 import Image from 'next/image';
 
@@ -605,6 +605,28 @@ export default function GamePage() {
             <CardContent>
               <p className="text-xl">Your final score is:</p>
               <p className="text-6xl font-bold text-primary my-4">{team.score}</p>
+              <div className="mt-6 text-left">
+                <h3 className="text-lg font-semibold mb-2">Your Path Summary</h3>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                  {puzzles.map((puzzle, index) => (
+                    <div
+                      key={puzzle.id}
+                      className="flex items-center justify-between p-2 rounded-md bg-muted/50"
+                    >
+                      <span className="font-medium">{puzzle.title}</span>
+                      {index < team.currentPuzzleIndex ? (
+                        <span className="flex items-center gap-1.5 text-sm text-green-500">
+                          <CheckCircle2 className="w-4 h-4" /> Solved
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1.5 text-sm text-destructive">
+                          <XCircle className="w-4 h-4" /> Not Solved
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </CardContent>
             <CardFooter className="flex-col gap-4">
               <Button asChild className="w-full" size="lg">
@@ -709,7 +731,7 @@ export default function GamePage() {
                  <Alert className="mt-6 border-yellow-500/50 bg-yellow-500/10 text-yellow-900 dark:text-yellow-200">
                     <Lightbulb className="h-4 w-4 text-yellow-500" />
                     <AlertTitle className="font-bold text-yellow-800 dark:text-yellow-300">Hint</AlertTitle>
-                    <AlertDescription>{currentPuzzle.hint}</AlertDescription>
+                    <AlertDescription className="text-yellow-700 dark:text-yellow-200">{currentPuzzle.hint}</AlertDescription>
                 </Alert>
               )}
             </CardContent>
@@ -838,5 +860,3 @@ export default function GamePage() {
     </div>
   );
 }
-
-    
