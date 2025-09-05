@@ -35,7 +35,16 @@ export default function AdminDashboardPage() {
     );
     
     const unsubscribe = onSnapshot(submissionsQuery, (snapshot) => {
-        const subs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SubmissionWithAI));
+        const subs = snapshot.docs.map(doc => {
+            const data = doc.data();
+            // Convert Firestore Timestamp to JS Date object
+            const submission = { 
+                id: doc.id, 
+                ...data, 
+                timestamp: data.timestamp.toDate() 
+            } as SubmissionWithAI;
+            return submission;
+        });
         setSubmissions(subs);
         setIsLoading(false);
     }, (error) => {
@@ -126,7 +135,7 @@ export default function AdminDashboardPage() {
                     </CardDescription>
                   </div>
                   <Badge variant="secondary">
-                    {formatDistanceToNow(new Date(submission.timestamp as any), { addSuffix: true })}
+                    {formatDistanceToNow(submission.timestamp, { addSuffix: true })}
                   </Badge>
                 </div>
                  {submission.submittedBy && (
