@@ -11,8 +11,7 @@ import { useEffect, useState } from 'react';
 const navLinks = [
   { href: '/admin', label: 'Submissions', icon: CheckSquare },
   { href: '/admin/teams', label: 'Team Management', icon: Users },
-  { href: '/admin/challenges', label: 'Puzzle Management', icon: Puzzle },
-  { href: '/admin/problems', label: 'Problems', icon: Puzzle },
+  { href: '/admin/puzzles', label: 'Puzzle Management', icon: Puzzle },
 ];
 
 export default function AdminLayout({

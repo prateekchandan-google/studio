@@ -15,6 +15,8 @@ export interface Puzzle {
   description:string;
   hint: string;
   solution: string;
+  pathId: number;
+  order: number;
 }
 
 export interface Submission {
