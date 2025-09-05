@@ -1,5 +1,6 @@
 
 
+
 export interface Team {
   id: string;
   name: string;
@@ -13,6 +14,7 @@ export interface Team {
   currentSubmissionId?: string | null;
   onlineMembers?: { [key: string]: any };
   currentPuzzleStartTime?: any;
+  gameStartTime?: any;
 }
 
 export interface Puzzle {

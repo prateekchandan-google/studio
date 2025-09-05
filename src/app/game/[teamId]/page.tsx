@@ -24,7 +24,7 @@ const HINT_PENALTY = 5;
 const IMMEDIATE_HINT_PENALTY = 10;
 const SKIP_PENALTY = 0; // No points awarded, but no deduction
 const PUZZLE_REWARD = 20;
-const PUZZLE_DURATION = 15 * 60; // 15 minutes in seconds
+const OVERALL_GAME_DURATION = 60 * 60; // 60 minutes in seconds
 const HINT_DELAY = 5 * 60; // 5 minutes in seconds
 const SKIP_DELAY = 10 * 60; // 10 minutes in seconds
 
@@ -46,7 +46,7 @@ export default function GamePage() {
   const [onlinePlayers, setOnlinePlayers] = useState<string[]>([]);
   
   // Timer states
-  const [puzzleTimeLeft, setPuzzleTimeLeft] = useState(PUZZLE_DURATION);
+  const [overallTimeLeft, setOverallTimeLeft] = useState(OVERALL_GAME_DURATION);
   const [hintTimeLeft, setHintTimeLeft] = useState(HINT_DELAY);
   const [skipTimeLeft, setSkipTimeLeft] = useState(SKIP_DELAY);
 
@@ -237,23 +237,26 @@ export default function GamePage() {
     if(!team || isPaused || isLoading || (team.currentPuzzleIndex >= puzzles.length && puzzles.length > 0)) return;
 
     const timer = setInterval(() => {
-        if (team.currentPuzzleStartTime) {
-            const startTime = team.currentPuzzleStartTime.toDate().getTime();
+        // Overall Game Timer
+        if (team.gameStartTime) {
+            const gameStartTime = team.gameStartTime.toDate().getTime();
             const now = Date.now();
-            const elapsed = Math.floor((now - startTime) / 1000);
-            
-            const newPuzzleTimeLeft = PUZZLE_DURATION - elapsed;
-            setPuzzleTimeLeft(newPuzzleTimeLeft > 0 ? newPuzzleTimeLeft : 0);
+            const elapsed = Math.floor((now - gameStartTime) / 1000);
+            const newOverallTimeLeft = OVERALL_GAME_DURATION - elapsed;
+            setOverallTimeLeft(newOverallTimeLeft > 0 ? newOverallTimeLeft : 0);
+        }
+        
+        // Per-Puzzle Timer for Hints/Skips
+        if (team.currentPuzzleStartTime) {
+            const puzzleStartTime = team.currentPuzzleStartTime.toDate().getTime();
+            const now = Date.now();
+            const elapsed = Math.floor((now - puzzleStartTime) / 1000);
 
             const newHintTimeLeft = HINT_DELAY - elapsed;
             setHintTimeLeft(newHintTimeLeft > 0 ? newHintTimeLeft : 0);
 
             const newSkipTimeLeft = SKIP_DELAY - elapsed;
             setSkipTimeLeft(newSkipTimeLeft > 0 ? newSkipTimeLeft : 0);
-
-            if (newPuzzleTimeLeft <= 0) {
-              handleSkip();
-            }
         }
     }, 1000);
 
@@ -349,7 +352,7 @@ export default function GamePage() {
         puzzleTitle: currentPuzzle.title,
         textSubmission,
         status: 'pending',
-        timestamp: new Date(),
+        timestamp: serverTimestamp(),
         submittedBy: playerName,
       };
       
@@ -431,7 +434,7 @@ export default function GamePage() {
       <div>
         <h1 className="text-2xl font-headline font-bold">Welcome, {team.name}!</h1>
         <p className="text-muted-foreground">House: {team.house} | Score: {team.score}</p>
-        <div className="flex items-center gap-2 mt-2 text-sm text-green-500 font-medium">
+         <div className="flex items-center gap-2 mt-2 text-sm text-green-500 font-medium">
             <Users className="w-4 h-4"/>
             <span>Online: {onlinePlayers.join(', ')}</span>
         </div>
@@ -498,7 +501,7 @@ export default function GamePage() {
                 </div>
               <CardTitle className="font-headline text-2xl">Game Has Not Started Yet</CardTitle>
               <CardDescription>
-                Please wait for 11th September 2:00 PM for game to start
+                Please wait for the game to start.
               </CardDescription>
             </CardHeader>
             <CardFooter>
@@ -510,6 +513,39 @@ export default function GamePage() {
         </div>
       </div>
     );
+  }
+
+  if (overallTimeLeft <= 0) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        {renderHeader()}
+        <div className="flex justify-center items-center text-center min-h-[calc(100vh-20rem)]">
+          <Card className="w-full max-w-lg z-10 bg-background/80 backdrop-blur-sm">
+            <CardHeader>
+              <div className="mx-auto bg-destructive/20 p-4 rounded-full mb-4 w-fit border-2 border-destructive/50">
+                <Timer className="w-12 h-12 text-destructive" />
+              </div>
+              <CardTitle className="font-headline text-4xl">Time's Up!</CardTitle>
+              <CardDescription className="text-lg">
+                The hunt has concluded. Let's see how you did.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xl">Your final score is:</p>
+              <p className="text-6xl font-bold text-primary my-4">{team.score}</p>
+            </CardContent>
+            <CardFooter className="flex-col gap-4">
+              <Button asChild className="w-full" size="lg">
+                <Link href="/scoreboard">View Scoreboard</Link>
+              </Button>
+              <Button variant="ghost" onClick={handleExitGame}>
+                Exit Game
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+    )
   }
   
   if (team.currentPuzzleIndex >= puzzles.length && puzzles.length > 0) {
@@ -588,10 +624,10 @@ export default function GamePage() {
                 </div>
                 <div className="flex items-center gap-2 text-lg font-semibold text-primary">
                     <Timer className="h-6 w-6" />
-                    <span>{isPaused ? "Paused" : formatTime(puzzleTimeLeft)}</span>
+                    <span>{isPaused ? "Paused" : formatTime(overallTimeLeft)}</span>
                 </div>
               </div>
-              <Progress value={(puzzleTimeLeft / PUZZLE_DURATION) * 100} className="w-full mt-4" />
+               <Progress value={(overallTimeLeft / OVERALL_GAME_DURATION) * 100} className="w-full mt-4" />
             </CardHeader>
             <CardContent className="flex-grow">
               <p className="text-lg text-muted-foreground whitespace-pre-wrap">{currentPuzzle.puzzle}</p>

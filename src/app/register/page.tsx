@@ -102,7 +102,7 @@ export default function RegistrationPage() {
         assignedPathId = allPaths[Math.floor(Math.random() * allPaths.length)];
       }
       
-      const newTeam: Omit<Team, 'currentPuzzleStartTime'> = {
+      const newTeam: Omit<Team, 'currentPuzzleStartTime' | 'gameStartTime'> = {
         id: teamId,
         name: data.teamName,
         house: data.houseName,
@@ -116,7 +116,8 @@ export default function RegistrationPage() {
     
       await setDoc(doc(db, "teams", teamId), {
         ...newTeam,
-        currentPuzzleStartTime: serverTimestamp() // Set initial start time
+        gameStartTime: serverTimestamp(),
+        currentPuzzleStartTime: serverTimestamp()
       });
       setSecretCode(teamId);
     } catch (error) {
