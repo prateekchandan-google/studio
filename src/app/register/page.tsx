@@ -115,6 +115,7 @@ export default function RegistrationPage() {
       };
     
       await setDoc(doc(db, "teams", teamId), newTeam);
+      localStorage.setItem('pathfinder-active-teamId', teamId);
       setSecretCode(teamId);
     } catch (error) {
         console.error("Could not save team to Firestore", error);
@@ -149,7 +150,7 @@ export default function RegistrationPage() {
                 <CardHeader className="text-center">
                     <CardTitle className="font-headline text-2xl">Registration Successful!</CardTitle>
                     <CardDescription>
-                        Here is your secret code. Keep it safe! You'll need it to access the puzzles.
+                        Thank you for registering! Here is your secret code. Keep it safe!
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
@@ -165,12 +166,12 @@ export default function RegistrationPage() {
                         </Button>
                     </div>
                      <p className="text-sm text-muted-foreground mt-4">
-                        The game will begin once you log in with your code. Good luck!
+                        The game has not started yet. Please visit this page on Sept 11th, 2:00 PM to begin. You can log in with this code.
                     </p>
                 </CardContent>
                 <CardFooter>
                      <Button className="w-full" onClick={proceedToGame}>
-                        Proceed to Game <ArrowRight className="ml-2 h-4 w-4"/>
+                        Proceed to Game Login <ArrowRight className="ml-2 h-4 w-4"/>
                     </Button>
                 </CardFooter>
             </Card>
