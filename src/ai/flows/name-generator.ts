@@ -1,12 +1,3 @@
-'use server';
-/**
- * @fileOverview A team name generation AI flow.
- *
- * - generateTeamName - A function that generates a team name.
- * - GenerateTeamNameInput - The input type for the generateTeamName function.
- * - GenerateTeamNameOutput - The return type for the generateTeamName function.
- */
-
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
@@ -36,9 +27,11 @@ const prompt = ai.definePrompt({
   name: 'generateTeamNamePrompt',
   input: {schema: GenerateTeamNameInputSchema},
   output: {schema: GenerateTeamNameOutputSchema},
-  prompt: `You are a creative assistant for a treasure hunt game.
+  prompt: `You are a creative assistant for a treasure hunt game set in India.
 
-Generate a fun, creative, and adventurous team name. The team name must be alliterative with the provided house name. Please feel free to be creative with 1-2 word house names and treasure hunt foo and good words.
+Generate a fun, creative, and adventurous team name. The team name must be alliterative with the provided house name.
+
+The team name should be inspired by Indian desserts and food, and it should also have a hint of adventure. For example, if the house name is "Bravehearts", a good team name could be "Biryani Buccaneers" or "Barfi Brigades".
 `,
 });
 
