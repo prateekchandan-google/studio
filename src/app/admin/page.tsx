@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { db } from "@/lib/firebase";
-import type { Submission, Team } from "@/lib/types";
+import type { Submission, Team, Puzzle } from "@/lib/types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Bot, Loader, UserCircle } from "lucide-react";
+import { Check, X, Bot, Loader, UserCircle, Users, Key } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { analyzeSubmission } from "@/ai/flows/submission-analyzer";
-import { collection, query, where, onSnapshot, orderBy, writeBatch, doc, increment } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy, writeBatch, doc, increment, getDocs } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -20,14 +20,47 @@ type SubmissionWithAI = Submission & {
   isAnalyzing?: boolean;
 };
 
+type SubmissionWithDetails = SubmissionWithAI & {
+  team?: Team;
+  puzzle?: Puzzle;
+};
+
 const PUZZLE_REWARD = 20;
 
 export default function AdminDashboardPage() {
-  const [submissions, setSubmissions] = useState<SubmissionWithAI[]>([]);
+  const [submissions, setSubmissions] = useState<SubmissionWithDetails[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
+    const fetchTeamsAndPuzzles = async () => {
+      try {
+        const teamsQuery = query(collection(db, 'teams'));
+        const teamsSnapshot = await getDocs(teamsQuery);
+        const teamsData = teamsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+        setTeams(teamsData);
+
+        const puzzlesQuery = query(collection(db, 'puzzles'));
+        const puzzlesSnapshot = await getDocs(puzzlesQuery);
+        const puzzlesData = puzzlesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
+        setPuzzles(puzzlesData);
+      } catch (error) {
+        console.error("Failed to fetch teams or puzzles:", error);
+        toast({ title: 'Error', description: 'Could not fetch supporting data.', variant: 'destructive' });
+      }
+    };
+    fetchTeamsAndPuzzles();
+  }, [toast]);
+
+  useEffect(() => {
+    if (puzzles.length === 0 || teams.length === 0) {
+      // Don't set up the listener until we have the lookup data
+      if (!isLoading) setIsLoading(true); // show loader if we re-fetch lookups
+      return;
+    };
+
     const submissionsQuery = query(
         collection(db, 'submissions'), 
         where('status', '==', 'pending'),
@@ -37,13 +70,17 @@ export default function AdminDashboardPage() {
     const unsubscribe = onSnapshot(submissionsQuery, (snapshot) => {
         const subs = snapshot.docs.map(doc => {
             const data = doc.data();
-            // Convert Firestore Timestamp to JS Date object
             const submission = { 
                 id: doc.id, 
                 ...data, 
                 timestamp: data.timestamp.toDate() 
             } as SubmissionWithAI;
-            return submission;
+            
+            return {
+              ...submission,
+              team: teams.find(t => t.id === submission.teamId),
+              puzzle: puzzles.find(p => p.id === submission.puzzleId)
+            } as SubmissionWithDetails;
         });
         setSubmissions(subs);
         setIsLoading(false);
@@ -54,7 +91,7 @@ export default function AdminDashboardPage() {
     });
 
     return () => unsubscribe();
-  }, [toast]);
+  }, [toast, puzzles, teams, isLoading]);
 
   const handleDecision = async (submissionId: string, teamId: string, decision: "approved" | "rejected") => {
     const batch = writeBatch(db);
@@ -146,6 +183,26 @@ export default function AdminDashboardPage() {
                  )}
               </CardHeader>
               <CardContent className="flex-grow space-y-4">
+                <div className="space-y-2 text-sm">
+                   {submission.team && (
+                     <div className="flex items-start gap-2">
+                       <Users className="w-4 h-4 mt-1 text-muted-foreground" />
+                       <div>
+                         <h4 className="font-semibold">Team Members</h4>
+                         <p className="text-muted-foreground">{submission.team.members.join(', ')}</p>
+                       </div>
+                     </div>
+                   )}
+                    {submission.puzzle && submission.puzzle.answer && (
+                      <div className="flex items-start gap-2">
+                        <Key className="w-4 h-4 mt-1 text-muted-foreground" />
+                        <div>
+                          <h4 className="font-semibold">Correct Answer</h4>
+                          <p className="text-muted-foreground">{submission.puzzle.answer}</p>
+                        </div>
+                      </div>
+                    )}
+                </div>
                 <blockquote className="text-sm italic border-l-4 pl-4">"{submission.textSubmission}"</blockquote>
                 {submission.imageSubmissionDataUri && (
                   <div>
