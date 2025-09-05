@@ -708,10 +708,10 @@ export default function GamePage() {
               <p className="text-lg text-muted-foreground whitespace-pre-wrap">{currentPuzzle.puzzle}</p>
               
               {showHint && currentPuzzle.hint && (
-                 <Alert className="mt-6 bg-accent/20 border-accent">
-                    <Lightbulb className="h-4 w-4 text-accent-foreground" />
-                    <AlertTitle className="font-bold text-accent-foreground">Hint</AlertTitle>
-                    <AlertDescription className="text-accent-foreground/80">{currentPuzzle.hint}</AlertDescription>
+                 <Alert className="mt-6 border-yellow-500/50 bg-yellow-500/10 text-yellow-900 dark:text-yellow-200">
+                    <Lightbulb className="h-4 w-4 text-yellow-500" />
+                    <AlertTitle className="font-bold text-yellow-800 dark:text-yellow-300">Hint</AlertTitle>
+                    <AlertDescription>{currentPuzzle.hint}</AlertDescription>
                 </Alert>
               )}
             </CardContent>
@@ -840,3 +840,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
