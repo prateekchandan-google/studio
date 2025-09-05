@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { doc, onSnapshot, collection, query, orderBy, where, addDoc, updateDoc, writeBatch } from 'firebase/firestore';
@@ -42,6 +42,9 @@ export default function GamePage() {
   const [puzzlesLoaded, setPuzzlesLoaded] = useState(false);
   const [teamLoaded, setTeamLoaded] = useState(false);
   const [playerName, setPlayerName] = useState<string | null>(null);
+
+  // Use a ref to track the previous submission ID to avoid stale state in snapshot listener
+  const prevSubmissionIdRef = useRef<string | null | undefined>();
 
   const { toast } = useToast();
 
@@ -90,11 +93,9 @@ export default function GamePage() {
     const unsubscribeTeam = onSnapshot(teamDocRef, (doc) => {
       if (doc.exists()) {
         const teamData = { id: doc.id, ...doc.data() } as Team;
-        const prevSubmissionId = team?.currentSubmissionId;
         
-        setTeam(teamData);
-
-        if (prevSubmissionId && !teamData.currentSubmissionId) {
+        // Check for rejection: if the previous state had a submissionId but the new one doesn't.
+        if (prevSubmissionIdRef.current && !teamData.currentSubmissionId) {
             setIsPaused(false);
             setTimeLeft(PUZZLE_DURATION);
             setShowHint(false);
@@ -104,6 +105,11 @@ export default function GamePage() {
                 variant: 'destructive',
             })
         }
+        
+        setTeam(teamData);
+        // Update the ref with the latest submission ID
+        prevSubmissionIdRef.current = teamData.currentSubmissionId;
+
 
         if (teamData.secretCode && typeof window !== 'undefined') {
             setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(teamData.secretCode)}`);
@@ -131,7 +137,7 @@ export default function GamePage() {
 
     return () => unsubscribeTeam();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamId]);
+  }, [teamId, toast]);
 
   useEffect(() => {
     if((puzzlesLoaded && teamLoaded) || (teamLoaded && team?.pathId === undefined)) {
@@ -217,7 +223,9 @@ export default function GamePage() {
   
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!team || !currentPuzzle || !playerName) {
+    if (!team || !currentPuzzle) return;
+    
+    if (!playerName) {
         toast({
             title: 'Cannot Submit',
             description: 'Player name not found. Please try logging in again.',
@@ -227,7 +235,7 @@ export default function GamePage() {
     }
 
     setIsSubmitting(true);
-    const formEl = e.target as HTMLFormFormElement;
+    const formEl = e.target as HTMLFormElement;
 
     try {
       const formData = new FormData(formEl);
@@ -489,3 +497,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
