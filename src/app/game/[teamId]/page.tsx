@@ -277,35 +277,36 @@ export default function GamePage() {
   useEffect(() => {
     let stream: MediaStream | null = null;
     
-    const getCameraPermission = async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        setHasCameraPermission(true);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+    const startStream = async () => {
+      if (isCameraDialogOpen && !isStreaming) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          setHasCameraPermission(true);
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+          setIsStreaming(true);
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setHasCameraPermission(false);
+          toast({
+            variant: 'destructive',
+            title: 'Camera Access Denied',
+            description: 'Please enable camera permissions in your browser settings to use this app.',
+          });
         }
-        setIsStreaming(true);
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use this app.',
-        });
       }
     };
-
-    if (isCameraDialogOpen && !isStreaming) {
-      getCameraPermission();
-    }
-
+    startStream();
+    
+    // Cleanup function
     return () => {
-      // Stop stream when component unmounts or dialog closes
-      if (stream) {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+        setIsStreaming(false);
       }
-      setIsStreaming(false);
     };
   }, [isCameraDialogOpen, isStreaming, toast]);
   
@@ -753,18 +754,7 @@ export default function GamePage() {
                         <Label htmlFor="image-answer">Supporting photo (optional)</Label>
                         <div className="flex gap-2">
                             <Input id="image-answer" name="image-answer" type="file" accept="image/*" disabled={isPaused || isSubmitting || !!capturedImage} />
-                             <Dialog open={isCameraDialogOpen} onOpenChange={(isOpen) => {
-                                setIsCameraDialogOpen(isOpen);
-                                if (!isOpen) {
-                                     // Stop video stream when dialog is closed
-                                    if (videoRef.current && videoRef.current.srcObject) {
-                                        const stream = videoRef.current.srcObject as MediaStream;
-                                        stream.getTracks().forEach(track => track.stop());
-                                        videoRef.current.srcObject = null;
-                                    }
-                                    setIsStreaming(false);
-                                }
-                             }}>
+                             <Dialog open={isCameraDialogOpen} onOpenChange={setIsCameraDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button type="button" variant="outline" size="icon" disabled={isPaused || isSubmitting}>
                                         <Camera />
@@ -847,5 +837,3 @@ export default function GamePage() {
     </div>
   );
 }
-
-    
