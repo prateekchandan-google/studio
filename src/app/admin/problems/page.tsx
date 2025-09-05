@@ -59,7 +59,7 @@ export default function ProblemsPage() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     if (editingPuzzle) {
@@ -89,9 +89,11 @@ export default function ProblemsPage() {
   const onSubmit = async (data: PuzzleFormValues) => {
     setIsSubmitting(true);
     try {
+      const parsedPathId = data.pathId ? parseInt(data.pathId, 10) : null;
+      
       const puzzleData = {
         ...data,
-        pathId: data.pathId ? parseInt(data.pathId, 10) : null,
+        pathId: parsedPathId,
       };
 
       if (editingPuzzle) {
@@ -101,7 +103,7 @@ export default function ProblemsPage() {
       } else {
         const newPuzzleData = {
             ...puzzleData,
-            order: puzzles.filter(p => p.pathId === puzzleData.pathId).length,
+            order: puzzles.filter(p => p.pathId === parsedPathId).length,
         };
         await addDoc(collection(db, 'puzzles'), newPuzzleData);
         toast({ title: 'Puzzle Added', description: 'The new puzzle is now available.' });
