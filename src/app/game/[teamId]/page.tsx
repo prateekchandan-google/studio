@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut } from 'lucide-react';
+import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Sparkles, Trophy } from 'lucide-react';
 import QRCode from "react-qr-code";
 
 
@@ -24,7 +24,7 @@ const HINT_PENALTY = 5;
 const IMMEDIATE_HINT_PENALTY = 10;
 const SKIP_PENALTY = 0; // No points awarded, but no deduction
 const PUZZLE_REWARD = 20;
-const PUZZLE_DURATION = 15 * 60; // 15 minutes in seconds
+const PUZZLE_DURATION = 60 * 60; // 15 minutes in seconds
 
 export default function GamePage() {
   const params = useParams();
@@ -164,8 +164,8 @@ export default function GamePage() {
   }, [puzzlesLoaded, teamLoaded, team]);
 
   useEffect(() => {
-    if (puzzles.length > 0 && team !== undefined) {
-      const puzzleIndex = team.currentPuzzleIndex < puzzles.length ? team.currentPuzzleIndex : 0;
+    if (puzzles.length > 0 && team !== undefined && team.currentPuzzleIndex < puzzles.length) {
+      const puzzleIndex = team.currentPuzzleIndex;
       setCurrentPuzzle(puzzles[puzzleIndex]);
     } else {
       setCurrentPuzzle(undefined);
@@ -174,7 +174,7 @@ export default function GamePage() {
 
 
   useEffect(() => {
-    if(!team || isPaused || isLoading || isSubmitting) return;
+    if(!team || isPaused || isLoading || isSubmitting || (team.currentPuzzleIndex >= puzzles.length && puzzles.length > 0)) return;
 
     if (timeLeft <= 0) {
       handleSkip();
@@ -187,7 +187,7 @@ export default function GamePage() {
 
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, isPaused, team, isLoading, isSubmitting]);
+  }, [timeLeft, isPaused, team, isLoading, isSubmitting, puzzles]);
 
   const handleHint = async () => {
     if (!team) return;
@@ -215,12 +215,6 @@ export default function GamePage() {
     if (!team || puzzles.length === 0) return;
       const nextPuzzleIndex = team.currentPuzzleIndex + 1;
       
-      if (nextPuzzleIndex >= puzzles.length) {
-          toast({ title: 'Congratulations!', description: "You've completed all puzzles on this path!" });
-          // Handle game completion logic
-          return;
-      }
-      
       const batch = writeBatch(db);
       const teamRef = doc(db, 'teams', team.id);
       batch.update(teamRef, {
@@ -231,13 +225,17 @@ export default function GamePage() {
 
       await batch.commit();
 
-      setTimeLeft(PUZZLE_DURATION);
-      setShowHint(false);
-      setIsPaused(false);
-      toast({
-          title: 'Puzzle Skipped',
-          description: `On to the next challenge!`,
-      });
+      if (nextPuzzleIndex >= puzzles.length) {
+          toast({ title: 'Path Completed!', description: "You've skipped the final puzzle and found the treasure!" });
+      } else {
+        setTimeLeft(PUZZLE_DURATION);
+        setShowHint(false);
+        setIsPaused(false);
+        toast({
+            title: 'Puzzle Skipped',
+            description: `On to the next challenge!`,
+        });
+      }
   };
 
   const fileToDataUri = (file: File) => new Promise<string>((resolve, reject) => {
@@ -281,6 +279,8 @@ export default function GamePage() {
       
       if (imageFile && imageFile.size > 0) {
         submissionData.imageSubmissionDataUri = await fileToDataUri(imageFile);
+      } else {
+        submissionData.imageSubmissionDataUri = null;
       }
 
       const submissionDocRef = await addDoc(collection(db, 'submissions'), submissionData);
@@ -433,6 +433,55 @@ export default function GamePage() {
     );
   }
   
+  if (team.currentPuzzleIndex >= puzzles.length && puzzles.length > 0) {
+    return (
+      <div className="container mx-auto py-8 px-4 relative overflow-hidden">
+        {renderHeader()}
+        <div className="flex justify-center items-center text-center min-h-[calc(100vh-20rem)]">
+           <div className="absolute inset-0 pointer-events-none">
+              {[...Array(20)].map((_, i) => (
+                <Sparkles
+                  key={i}
+                  className="absolute animate-pulse text-yellow-400"
+                  style={{
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                    width: `${Math.random() * 3 + 1}rem`,
+                    height: `${Math.random() * 3 + 1}rem`,
+                    animationDuration: `${Math.random() * 2 + 1}s`,
+                    animationDelay: `${Math.random()}s`,
+                  }}
+                />
+              ))}
+            </div>
+          <Card className="w-full max-w-lg z-10 bg-background/80 backdrop-blur-sm">
+              <CardHeader>
+                <div className="mx-auto bg-yellow-400/20 p-4 rounded-full mb-4 w-fit border-2 border-yellow-400/50">
+                    <Trophy className="w-12 h-12 text-yellow-400" />
+                </div>
+              <CardTitle className="font-headline text-4xl">Congratulations, {team.name}!</CardTitle>
+              <CardDescription className="text-lg">
+                You've solved all the puzzles and found the treasure!
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-xl">Your final score is:</p>
+                <p className="text-6xl font-bold text-primary my-4">{team.score}</p>
+            </CardContent>
+            <CardFooter className="flex-col gap-4">
+              <Button asChild className="w-full" size="lg">
+                <Link href="/scoreboard">View Scoreboard</Link>
+              </Button>
+               <Button variant="ghost" onClick={handleExitGame}>
+                 Exit Game
+               </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
   if (!currentPuzzle) {
      return (
         <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
@@ -441,8 +490,8 @@ export default function GamePage() {
     )
   }
 
-  const canShowHint = timeLeft <= PUZZLE_DURATION - (5 * 60);
-  const canSkip = timeLeft <= PUZZLE_DURATION - (10 * 60);
+  const canShowHint = timeLeft <= PUZZLE_DURATION - (5);
+  const canSkip = timeLeft <= PUZZLE_DURATION - (10);
 
   return (
     <div className="container mx-auto py-8 px-4">
