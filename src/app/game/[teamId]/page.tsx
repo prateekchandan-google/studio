@@ -21,8 +21,9 @@ import QRCode from "react-qr-code";
 
 
 const HINT_PENALTY = 5;
+const IMMEDIATE_HINT_PENALTY = 10;
 const SKIP_PENALTY = 0; // No points awarded, but no deduction
-const PUZZLE_REWARD = 10;
+const PUZZLE_REWARD = 20;
 const PUZZLE_DURATION = 15 * 60; // 15 minutes in seconds
 
 export default function GamePage() {
@@ -196,6 +197,17 @@ export default function GamePage() {
     toast({
       title: 'Hint Unlocked!',
       description: `${HINT_PENALTY} points have been deducted.`,
+    });
+  };
+
+  const handleImmediateHint = async () => {
+    if (!team) return;
+    setShowHint(true);
+    const teamRef = doc(db, 'teams', team.id);
+    await updateDoc(teamRef, { score: team.score - IMMEDIATE_HINT_PENALTY });
+    toast({
+      title: 'Hint Unlocked!',
+      description: `${IMMEDIATE_HINT_PENALTY} points have been deducted.`,
     });
   };
   
@@ -460,6 +472,10 @@ export default function GamePage() {
               )}
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row gap-2">
+                <Button variant="outline" onClick={handleImmediateHint} disabled={showHint || !currentPuzzle.hint}>
+                    <Lightbulb className="mr-2 h-4 w-4" />
+                    Get Hint Immediately (-{IMMEDIATE_HINT_PENALTY} pts)
+                </Button>
                 <Button variant="outline" onClick={handleHint} disabled={!canShowHint || showHint || !currentPuzzle.hint}>
                     <Lightbulb className="mr-2 h-4 w-4" />
                     {showHint ? 'Hint Revealed' : `Get Hint (-${HINT_PENALTY} pts)`}

@@ -20,7 +20,7 @@ type SubmissionWithAI = Submission & {
   isAnalyzing?: boolean;
 };
 
-const PUZZLE_REWARD = 10;
+const PUZZLE_REWARD = 20;
 
 export default function AdminDashboardPage() {
   const [submissions, setSubmissions] = useState<SubmissionWithAI[]>([]);
