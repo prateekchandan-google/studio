@@ -43,8 +43,10 @@ export default function GamePage() {
   const [teamLoaded, setTeamLoaded] = useState(false);
   const [playerName, setPlayerName] = useState<string | null>(null);
 
-  // Use a ref to track the previous submission ID to avoid stale state in snapshot listener
+  // Use refs to track previous state to avoid stale state in snapshot listener
   const prevSubmissionIdRef = useRef<string | null | undefined>();
+  const prevPuzzleIndexRef = useRef<number | undefined>();
+
 
   const { toast } = useToast();
 
@@ -93,9 +95,9 @@ export default function GamePage() {
     const unsubscribeTeam = onSnapshot(teamDocRef, (doc) => {
       if (doc.exists()) {
         const teamData = { id: doc.id, ...doc.data() } as Team;
-        
+
         // Check for rejection: if the previous state had a submissionId but the new one doesn't.
-        if (prevSubmissionIdRef.current && !teamData.currentSubmissionId) {
+        if (prevSubmissionIdRef.current && !teamData.currentSubmissionId && prevPuzzleIndexRef.current === teamData.currentPuzzleIndex) {
             setIsPaused(false);
             setTimeLeft(PUZZLE_DURATION);
             setShowHint(false);
@@ -105,10 +107,22 @@ export default function GamePage() {
                 variant: 'destructive',
             })
         }
+
+        // Check for approval: if the puzzle index has increased.
+        if (prevPuzzleIndexRef.current !== undefined && teamData.currentPuzzleIndex > prevPuzzleIndexRef.current) {
+            setIsPaused(false);
+            setTimeLeft(PUZZLE_DURATION);
+            setShowHint(false);
+            toast({
+                title: 'Solution Approved!',
+                description: `+${PUZZLE_REWARD} points! On to the next challenge.`,
+            });
+        }
         
         setTeam(teamData);
-        // Update the ref with the latest submission ID
+        // Update the refs with the latest state
         prevSubmissionIdRef.current = teamData.currentSubmissionId;
+        prevPuzzleIndexRef.current = teamData.currentPuzzleIndex;
 
 
         if (teamData.secretCode && typeof window !== 'undefined') {
