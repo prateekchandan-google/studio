@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 
 const navLinks = [
-  { href: '/admin', label: 'Submissions', icon: CheckSquare },
+  { href: '/admin', label: 'Home', icon: Home },
+  { href: '/admin/submission', label: 'Submissions', icon: CheckSquare },
   { href: '/admin/teams', label: 'Team Management', icon: Users },
   { href: '/admin/puzzles', label: 'Puzzle Management', icon: Puzzle },
 ];
