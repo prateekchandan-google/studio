@@ -41,8 +41,6 @@ export default function GamePage() {
   const [loginUrl, setLoginUrl] = useState('');
   const [hasCopied, setHasCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [puzzlesLoaded, setPuzzlesLoaded] = useState(false);
-  const [teamLoaded, setTeamLoaded] = useState(false);
   const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
   const [playerName, setPlayerName] = useState<string | null>(null);
   const [onlinePlayers, setOnlinePlayers] = useState<string[]>([]);
@@ -114,40 +112,100 @@ export default function GamePage() {
       setShowLiveStartDialog(false);
   }
 
+  // Master data fetching effect
   useEffect(() => {
-    if (!team || team.pathId === undefined) return;
-    
-    // Set puzzle start time if it's not set (for the very first puzzle)
-    if(team.currentPuzzleIndex === 0 && !team.currentPuzzleStartTime) {
-        const teamRef = doc(db, 'teams', team.id);
-        updateDoc(teamRef, {
-            currentPuzzleStartTime: serverTimestamp()
-        });
+    if (!teamId) {
+      setIsLoading(false);
+      return;
     }
-
-    const puzzlesQuery = query(
-      collection(db, 'puzzles'),
-      where('pathId', '==', team.pathId),
-      orderBy('order', 'asc')
-    );
-    
-    const unsubscribePuzzles = onSnapshot(puzzlesQuery, (snapshot) => {
-        const puzzlesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
-        setPuzzles(puzzlesData);
-        setPuzzlesLoaded(true);
-    }, (error) => {
-      console.error("Error fetching puzzles: ", error);
-      toast({
-            title: "Error",
-            description: "Could not load puzzle data.",
-            variant: "destructive"
+  
+    setPlayerName(localStorage.getItem(`pathfinder-player-${teamId}`));
+  
+    const teamDocRef = doc(db, 'teams', teamId);
+  
+    const unsubscribeTeam = onSnapshot(teamDocRef, (teamDoc) => {
+      if (!teamDoc.exists()) {
+        setTeam(undefined);
+        toast({
+          title: "Team Not Found",
+          description: "Your team may have been removed. Logging out.",
+          variant: "destructive",
+          duration: 5000,
         });
-      setPuzzlesLoaded(true);
+        handleExitGame();
+        setIsLoading(false);
+        return;
+      }
+  
+      const teamData = { id: teamDoc.id, ...teamDoc.data() } as Team;
+
+       // Check for rejection/approval toasts
+        if (prevSubmissionIdRef.current && !teamData.currentSubmissionId && prevPuzzleIndexRef.current === teamData.currentPuzzleIndex) {
+            toast({
+                title: 'Submission Rejected',
+                description: "Your answer wasn't quite right. The timer is running. Try again!",
+                variant: 'destructive',
+            })
+        }
+        if (prevPuzzleIndexRef.current !== undefined && teamData.currentPuzzleIndex > prevPuzzleIndexRef.current) {
+            toast({
+                title: 'Solution Approved!',
+                description: `+${PUZZLE_REWARD} points! On to the next challenge.`,
+            });
+        }
+        
+        prevSubmissionIdRef.current = teamData.currentSubmissionId;
+        prevPuzzleIndexRef.current = teamData.currentPuzzleIndex;
+
+      setTeam(teamData);
+  
+      // Update online players
+      if (teamData.onlineMembers) {
+        const now = Date.now();
+        const online = Object.entries(teamData.onlineMembers)
+          .filter(([_, timestamp]) => timestamp && (now - timestamp.toDate().getTime()) < 30000)
+          .map(([name]) => name);
+        setOnlinePlayers(online);
+      }
+  
+      // Set login URL
+      if (teamData.secretCode && typeof window !== 'undefined') {
+        setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(teamData.secretCode)}`);
+      }
+  
+      // Now fetch puzzles if we have a pathId
+      if (teamData.pathId !== undefined) {
+        const puzzlesQuery = query(
+          collection(db, 'puzzles'),
+          where('pathId', '==', teamData.pathId),
+          orderBy('order', 'asc')
+        );
+        const unsubscribePuzzles = onSnapshot(puzzlesQuery, (puzzlesSnapshot) => {
+          const puzzlesData = puzzlesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
+          setPuzzles(puzzlesData);
+          setIsLoading(false); // Loading is complete ONLY after puzzles are fetched
+        }, (error) => {
+          console.error("Error fetching puzzles:", error);
+          toast({ title: "Error", description: "Could not load puzzle data.", variant: "destructive" });
+          setIsLoading(false);
+        });
+        return () => unsubscribePuzzles(); // This will be called on cleanup
+      } else {
+        // No pathId, so no puzzles to fetch. Loading is done.
+        setPuzzles([]);
+        setIsLoading(false);
+      }
+    }, (error) => {
+      console.error("Error fetching team:", error);
+      toast({ title: "Error", description: "Could not load team data.", variant: "destructive" });
+      handleExitGame();
+      setIsLoading(false);
     });
-    
-    return () => unsubscribePuzzles();
+  
+    return () => unsubscribeTeam();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [team?.pathId, team?.id]);
+  }, [teamId, toast]);
+
   
   useEffect(() => {
     if (!teamId || !playerName) return;
@@ -184,87 +242,6 @@ export default function GamePage() {
     };
 
   }, [teamId, playerName]);
-
-
-  useEffect(() => {
-    if (!teamId) {
-      setTeamLoaded(true);
-      return;
-    }
-    
-    setPlayerName(localStorage.getItem(`pathfinder-player-${teamId}`));
-
-    const teamDocRef = doc(db, 'teams', teamId);
-    const unsubscribeTeam = onSnapshot(teamDocRef, (doc) => {
-      if (doc.exists()) {
-        const teamData = { id: doc.id, ...doc.data() } as Team;
-
-        const isPaused = !!teamData.currentSubmissionId;
-
-        // Check for rejection
-        if (prevSubmissionIdRef.current && !teamData.currentSubmissionId && prevPuzzleIndexRef.current === teamData.currentPuzzleIndex) {
-            toast({
-                title: 'Submission Rejected',
-                description: "Your answer wasn't quite right. The timer is running. Try again!",
-                variant: 'destructive',
-            })
-        }
-
-        // Check for approval
-        if (prevPuzzleIndexRef.current !== undefined && teamData.currentPuzzleIndex > prevPuzzleIndexRef.current) {
-            toast({
-                title: 'Solution Approved!',
-                description: `+${PUZZLE_REWARD} points! On to the next challenge.`,
-            });
-        }
-        
-        setTeam(teamData);
-
-        if (teamData.onlineMembers) {
-            const now = Date.now();
-            const online = Object.entries(teamData.onlineMembers)
-                .filter(([_, timestamp]) => timestamp && (now - timestamp.toDate().getTime()) < 30000)
-                .map(([name]) => name);
-            setOnlinePlayers(online);
-        }
-
-        prevSubmissionIdRef.current = teamData.currentSubmissionId;
-        prevPuzzleIndexRef.current = teamData.currentPuzzleIndex;
-
-
-        if (teamData.secretCode && typeof window !== 'undefined') {
-            setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(teamData.secretCode)}`);
-        }
-      } else {
-        setTeam(undefined);
-        toast({
-            title: "Team Not Found",
-            description: "Your team may have been removed by an admin. You are being logged out.",
-            variant: "destructive",
-            duration: 5000,
-        });
-        handleExitGame();
-      }
-      setTeamLoaded(true);
-    }, (error) => {
-        console.error("Error fetching team:", error);
-        toast({
-            title: "Error",
-            description: "Could not load team data. Please try again.",
-            variant: "destructive"
-        });
-        handleExitGame();
-    });
-
-    return () => unsubscribeTeam();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamId, toast]);
-
-  useEffect(() => {
-    if((puzzlesLoaded && teamLoaded && gameSettings !== null) || (teamLoaded && team?.pathId === undefined)) {
-        setIsLoading(false);
-    }
-  }, [puzzlesLoaded, teamLoaded, gameSettings, team]);
 
   useEffect(() => {
     if (puzzles.length > 0 && team !== undefined && team.currentPuzzleIndex < puzzles.length) {
@@ -707,7 +684,7 @@ export default function GamePage() {
     )
   }
   
-  if (team.currentPuzzleIndex >= puzzles.length && puzzles.length > 0) {
+  if (team.pathId === undefined || (team.currentPuzzleIndex >= puzzles.length && puzzles.length > 0)) {
     return (
       <div className="container mx-auto py-8 px-4 relative overflow-hidden">
         {renderHeader()}
