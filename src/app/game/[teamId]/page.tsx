@@ -4,7 +4,7 @@
 import { useState, useEffect, FormEvent, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { doc, onSnapshot, collection, query, orderBy, where, addDoc, updateDoc, writeBatch, serverTimestamp, getDoc, FieldValue, deleteField, increment } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, orderBy, where, addDoc, updateDoc, writeBatch, serverTimestamp, getDoc, FieldValue, deleteField, increment, arrayUnion } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Puzzle, Team } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,7 +37,6 @@ export default function GamePage() {
   const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
   const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showHint, setShowHint] = useState(false);
   const [loginUrl, setLoginUrl] = useState('');
   const [hasCopied, setHasCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -166,7 +165,6 @@ export default function GamePage() {
 
         // Check for rejection
         if (prevSubmissionIdRef.current && !teamData.currentSubmissionId && prevPuzzleIndexRef.current === teamData.currentPuzzleIndex) {
-            setShowHint(false);
             toast({
                 title: 'Submission Rejected',
                 description: "Your answer wasn't quite right. The timer is running. Try again!",
@@ -176,7 +174,6 @@ export default function GamePage() {
 
         // Check for approval
         if (prevPuzzleIndexRef.current !== undefined && teamData.currentPuzzleIndex > prevPuzzleIndexRef.current) {
-            setShowHint(false);
             toast({
                 title: 'Solution Approved!',
                 description: `+${PUZZLE_REWARD} points! On to the next challenge.`,
@@ -278,21 +275,24 @@ export default function GamePage() {
     let localStream: MediaStream | null = null;
   
     async function setupCamera() {
-      if (!isCameraDialogOpen) return;
-
-      try {
-        const cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        localStream = cameraStream;
-        setStream(cameraStream);
-        setHasCameraPermission(true);
-      } catch (error) {
-        console.error("Error accessing camera:", error);
-        setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use this app.',
-        });
+      if (isCameraDialogOpen) {
+        try {
+          const cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          localStream = cameraStream;
+          setStream(cameraStream);
+          setHasCameraPermission(true);
+          if (videoRef.current) {
+            videoRef.current.srcObject = cameraStream;
+          }
+        } catch (error) {
+          console.error("Error accessing camera:", error);
+          setHasCameraPermission(false);
+          toast({
+            variant: 'destructive',
+            title: 'Camera Access Denied',
+            description: 'Please enable camera permissions in your browser settings to use this app.',
+          });
+        }
       }
     }
 
@@ -306,12 +306,6 @@ export default function GamePage() {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCameraDialogOpen]);
-
-  useEffect(() => {
-    if (stream && videoRef.current) {
-        videoRef.current.srcObject = stream;
-    }
-  }, [stream]);
   
   const handleCapture = () => {
     if (videoRef.current && canvasRef.current) {
@@ -337,10 +331,12 @@ export default function GamePage() {
   
 
   const handleHint = async () => {
-    if (!team) return;
-    setShowHint(true);
+    if (!team || !currentPuzzle) return;
     const teamRef = doc(db, 'teams', team.id);
-    await updateDoc(teamRef, { score: increment(-HINT_PENALTY) });
+    await updateDoc(teamRef, { 
+        score: increment(-HINT_PENALTY),
+        revealedHints: arrayUnion(currentPuzzle.id)
+    });
     toast({
       title: 'Hint Unlocked!',
       description: `${HINT_PENALTY} points have been deducted.`,
@@ -348,10 +344,12 @@ export default function GamePage() {
   };
 
   const handleImmediateHint = async () => {
-    if (!team) return;
-    setShowHint(true);
+    if (!team || !currentPuzzle) return;
     const teamRef = doc(db, 'teams', team.id);
-    await updateDoc(teamRef, { score: increment(-IMMEDIATE_HINT_PENALTY) });
+    await updateDoc(teamRef, { 
+        score: increment(-IMMEDIATE_HINT_PENALTY),
+        revealedHints: arrayUnion(currentPuzzle.id)
+    });
     toast({
       title: 'Hint Unlocked!',
       description: `${IMMEDIATE_HINT_PENALTY} points have been deducted.`,
@@ -377,7 +375,6 @@ export default function GamePage() {
         if (nextPuzzleIndex >= puzzles.length) {
             toast({ title: 'Path Completed!', description: "You've skipped the final puzzle and found the treasure!" });
         } else {
-          setShowHint(false);
           toast({
               title: 'Puzzle Skipped',
               description: `On to the next challenge!`,
@@ -680,6 +677,7 @@ export default function GamePage() {
     )
   }
   
+  const hasRevealedHint = team.revealedHints?.includes(currentPuzzle.id);
   const canShowHint = hintTimeLeft <= 0;
   const canSkip = skipTimeLeft <= 0;
 
@@ -707,7 +705,7 @@ export default function GamePage() {
             <CardContent className="flex-grow">
               <p className="text-lg text-muted-foreground whitespace-pre-wrap">{currentPuzzle.puzzle}</p>
               
-              {showHint && currentPuzzle.hint && (
+              {hasRevealedHint && currentPuzzle.hint && (
                  <Alert className="mt-6 border-yellow-500/50 bg-yellow-500/10 text-yellow-900 dark:text-yellow-200">
                     <Lightbulb className="h-4 w-4 text-yellow-500" />
                     <AlertTitle className="font-bold text-yellow-800 dark:text-yellow-300">Hint</AlertTitle>
@@ -716,13 +714,13 @@ export default function GamePage() {
               )}
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row gap-2">
-                <Button variant="outline" onClick={handleImmediateHint} disabled={showHint || !currentPuzzle.hint || isPaused}>
+                <Button variant="outline" onClick={handleImmediateHint} disabled={hasRevealedHint || !currentPuzzle.hint || isPaused}>
                     <Lightbulb className="mr-2 h-4 w-4" />
                     Get Hint Immediately (-{IMMEDIATE_HINT_PENALTY} pts)
                 </Button>
-                <Button variant="outline" onClick={handleHint} disabled={!canShowHint || showHint || !currentPuzzle.hint || isPaused}>
+                <Button variant="outline" onClick={handleHint} disabled={!canShowHint || hasRevealedHint || !currentPuzzle.hint || isPaused}>
                     <Lightbulb className="mr-2 h-4 w-4" />
-                    {showHint ? 'Hint Revealed' : canShowHint ? `Get Hint (-${HINT_PENALTY} pts)` : `Hint in ${formatTime(hintTimeLeft)}`}
+                    {hasRevealedHint ? 'Hint Revealed' : canShowHint ? `Get Hint (-${HINT_PENALTY} pts)` : `Hint in ${formatTime(hintTimeLeft)}`}
                 </Button>
                 <Button variant="secondary" onClick={handleSkip} disabled={!canSkip || isPaused}>
                     <SkipForward className="mr-2 h-4 w-4" />

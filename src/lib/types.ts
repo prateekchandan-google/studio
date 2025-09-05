@@ -16,6 +16,7 @@ export interface Team {
   onlineMembers?: { [key: string]: Timestamp };
   currentPuzzleStartTime?: Timestamp;
   gameStartTime?: Timestamp;
+  revealedHints?: string[];
 }
 
 export interface Puzzle {
