@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -102,7 +102,7 @@ export default function RegistrationPage() {
         assignedPathId = allPaths[Math.floor(Math.random() * allPaths.length)];
       }
       
-      const newTeam: Team = {
+      const newTeam: Omit<Team, 'currentPuzzleStartTime'> = {
         id: teamId,
         name: data.teamName,
         house: data.houseName,
@@ -114,7 +114,10 @@ export default function RegistrationPage() {
         pathId: assignedPathId,
       };
     
-      await setDoc(doc(db, "teams", teamId), newTeam);
+      await setDoc(doc(db, "teams", teamId), {
+        ...newTeam,
+        currentPuzzleStartTime: serverTimestamp() // Set initial start time
+      });
       setSecretCode(teamId);
     } catch (error) {
         console.error("Could not save team to Firestore", error);

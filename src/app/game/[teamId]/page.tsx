@@ -24,7 +24,9 @@ const HINT_PENALTY = 5;
 const IMMEDIATE_HINT_PENALTY = 10;
 const SKIP_PENALTY = 0; // No points awarded, but no deduction
 const PUZZLE_REWARD = 20;
-const PUZZLE_DURATION = 60 * 60; // 15 minutes in seconds
+const PUZZLE_DURATION = 15 * 60; // 15 minutes in seconds
+const HINT_DELAY = 5 * 60; // 5 minutes in seconds
+const SKIP_DELAY = 10 * 60; // 10 minutes in seconds
 
 export default function GamePage() {
   const params = useParams();
@@ -33,8 +35,6 @@ export default function GamePage() {
   const [team, setTeam] = useState<Team | undefined>();
   const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
   const [currentPuzzle, setCurrentPuzzle] = useState<Puzzle | undefined>();
-  const [timeLeft, setTimeLeft] = useState(PUZZLE_DURATION);
-  const [isPaused, setIsPaused] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [loginUrl, setLoginUrl] = useState('');
@@ -44,8 +44,12 @@ export default function GamePage() {
   const [teamLoaded, setTeamLoaded] = useState(false);
   const [playerName, setPlayerName] = useState<string | null>(null);
   const [onlinePlayers, setOnlinePlayers] = useState<string[]>([]);
+  
+  // Timer states
+  const [puzzleTimeLeft, setPuzzleTimeLeft] = useState(PUZZLE_DURATION);
+  const [hintTimeLeft, setHintTimeLeft] = useState(HINT_DELAY);
+  const [skipTimeLeft, setSkipTimeLeft] = useState(SKIP_DELAY);
 
-  // Use refs to track previous state to avoid stale state in snapshot listener
   const prevSubmissionIdRef = useRef<string | null | undefined>();
   const prevPuzzleIndexRef = useRef<number | undefined>();
 
@@ -66,6 +70,14 @@ export default function GamePage() {
   
   useEffect(() => {
     if (!team || team.pathId === undefined) return;
+    
+    // Set puzzle start time if it's not set (for the very first puzzle)
+    if(team.currentPuzzleIndex === 0 && !team.currentPuzzleStartTime) {
+        const teamRef = doc(db, 'teams', team.id);
+        updateDoc(teamRef, {
+            currentPuzzleStartTime: serverTimestamp()
+        });
+    }
 
     const puzzlesQuery = query(
       collection(db, 'puzzles'),
@@ -89,27 +101,23 @@ export default function GamePage() {
     
     return () => unsubscribePuzzles();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [team?.pathId]);
+  }, [team?.pathId, team?.id]);
   
-  // Effect for handling player online status
   useEffect(() => {
     if (!teamId || !playerName) return;
 
     const teamRef = doc(db, 'teams', teamId);
     
-    // Set initial online status
     updateDoc(teamRef, {
       [`onlineMembers.${playerName}`]: serverTimestamp()
     });
     
-    // Heartbeat to keep status fresh
     const interval = setInterval(() => {
        updateDoc(teamRef, {
          [`onlineMembers.${playerName}`]: serverTimestamp()
        });
-    }, 20000); // every 20 seconds
+    }, 20000); 
 
-    // Cleanup on unmount/disconnect
     const handleBeforeUnload = () => {
        updateDoc(teamRef, {
          [`onlineMembers.${playerName}`]: deleteField()
@@ -120,7 +128,6 @@ export default function GamePage() {
     return () => {
         clearInterval(interval);
         window.removeEventListener('beforeunload', handleBeforeUnload);
-        // Best-effort cleanup on component unmount
         getDoc(teamRef).then(docSnap => {
             if(docSnap.exists()){
                 updateDoc(teamRef, {
@@ -146,22 +153,20 @@ export default function GamePage() {
       if (doc.exists()) {
         const teamData = { id: doc.id, ...doc.data() } as Team;
 
-        // Check for rejection: if the previous state had a submissionId but the new one doesn't.
+        const isPaused = !!teamData.currentSubmissionId;
+
+        // Check for rejection
         if (prevSubmissionIdRef.current && !teamData.currentSubmissionId && prevPuzzleIndexRef.current === teamData.currentPuzzleIndex) {
-            setIsPaused(false);
-            setTimeLeft(PUZZLE_DURATION);
             setShowHint(false);
             toast({
                 title: 'Submission Rejected',
-                description: "Your answer wasn't quite right. The timer has restarted. Try again!",
+                description: "Your answer wasn't quite right. The timer is running. Try again!",
                 variant: 'destructive',
             })
         }
 
-        // Check for approval: if the puzzle index has increased.
+        // Check for approval
         if (prevPuzzleIndexRef.current !== undefined && teamData.currentPuzzleIndex > prevPuzzleIndexRef.current) {
-            setIsPaused(false);
-            setTimeLeft(PUZZLE_DURATION);
             setShowHint(false);
             toast({
                 title: 'Solution Approved!',
@@ -174,12 +179,11 @@ export default function GamePage() {
         if (teamData.onlineMembers) {
             const now = Date.now();
             const online = Object.entries(teamData.onlineMembers)
-                .filter(([_, timestamp]) => timestamp && (now - timestamp.toDate().getTime()) < 30000) // 30 second threshold
+                .filter(([_, timestamp]) => timestamp && (now - timestamp.toDate().getTime()) < 30000)
                 .map(([name]) => name);
             setOnlinePlayers(online);
         }
 
-        // Update the refs with the latest state
         prevSubmissionIdRef.current = teamData.currentSubmissionId;
         prevPuzzleIndexRef.current = teamData.currentPuzzleIndex;
 
@@ -188,7 +192,7 @@ export default function GamePage() {
             setLoginUrl(`${window.location.origin}/?secretCode=${encodeURIComponent(teamData.secretCode)}`);
         }
       } else {
-        setTeam(undefined); // Team deleted or doesn't exist
+        setTeam(undefined);
         toast({
             title: "Team Not Found",
             description: "Your team may have been removed by an admin. You are being logged out.",
@@ -216,9 +220,6 @@ export default function GamePage() {
     if((puzzlesLoaded && teamLoaded) || (teamLoaded && team?.pathId === undefined)) {
         setIsLoading(false);
     }
-    if (team?.currentSubmissionId) {
-      setIsPaused(true);
-    }
   }, [puzzlesLoaded, teamLoaded, team]);
 
   useEffect(() => {
@@ -232,20 +233,33 @@ export default function GamePage() {
 
 
   useEffect(() => {
-    if(!team || isPaused || isLoading || isSubmitting || (team.currentPuzzleIndex >= puzzles.length && puzzles.length > 0)) return;
-
-    if (timeLeft <= 0) {
-      handleSkip();
-      return;
-    }
+    const isPaused = !!team?.currentSubmissionId;
+    if(!team || isPaused || isLoading || (team.currentPuzzleIndex >= puzzles.length && puzzles.length > 0)) return;
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
+        if (team.currentPuzzleStartTime) {
+            const startTime = team.currentPuzzleStartTime.toDate().getTime();
+            const now = Date.now();
+            const elapsed = Math.floor((now - startTime) / 1000);
+            
+            const newPuzzleTimeLeft = PUZZLE_DURATION - elapsed;
+            setPuzzleTimeLeft(newPuzzleTimeLeft > 0 ? newPuzzleTimeLeft : 0);
+
+            const newHintTimeLeft = HINT_DELAY - elapsed;
+            setHintTimeLeft(newHintTimeLeft > 0 ? newHintTimeLeft : 0);
+
+            const newSkipTimeLeft = SKIP_DELAY - elapsed;
+            setSkipTimeLeft(newSkipTimeLeft > 0 ? newSkipTimeLeft : 0);
+
+            if (newPuzzleTimeLeft <= 0) {
+              handleSkip();
+            }
+        }
     }, 1000);
 
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, isPaused, team, isLoading, isSubmitting, puzzles]);
+  }, [team, isLoading, puzzles]);
 
   const handleHint = async () => {
     if (!team) return;
@@ -279,20 +293,24 @@ export default function GamePage() {
           currentPuzzleIndex: nextPuzzleIndex,
           score: team.score - SKIP_PENALTY,
           currentSubmissionId: null,
+          currentPuzzleStartTime: serverTimestamp(),
       });
 
-      await batch.commit();
+      try {
+        await batch.commit();
 
-      if (nextPuzzleIndex >= puzzles.length) {
-          toast({ title: 'Path Completed!', description: "You've skipped the final puzzle and found the treasure!" });
-      } else {
-        setTimeLeft(PUZZLE_DURATION);
-        setShowHint(false);
-        setIsPaused(false);
-        toast({
-            title: 'Puzzle Skipped',
-            description: `On to the next challenge!`,
-        });
+        if (nextPuzzleIndex >= puzzles.length) {
+            toast({ title: 'Path Completed!', description: "You've skipped the final puzzle and found the treasure!" });
+        } else {
+          setShowHint(false);
+          toast({
+              title: 'Puzzle Skipped',
+              description: `On to the next challenge!`,
+          });
+        }
+      } catch (error) {
+         console.error("Failed to skip puzzle", error);
+         toast({ title: 'Error', description: 'Could not skip puzzle. Please try again.', variant: 'destructive'});
       }
   };
 
@@ -342,7 +360,6 @@ export default function GamePage() {
       const submissionDocRef = await addDoc(collection(db, 'submissions'), submissionData);
       await updateDoc(doc(db, 'teams', team.id), { currentSubmissionId: submissionDocRef.id });
 
-      setIsPaused(true);
       formEl.reset();
       toast({
         title: 'Submission Received!',
@@ -406,6 +423,8 @@ export default function GamePage() {
         </div>
     );
   }
+  
+  const isPaused = !!team.currentSubmissionId;
 
   const renderHeader = () => (
     <div className="flex justify-between items-start mb-8 flex-wrap gap-4">
@@ -549,9 +568,9 @@ export default function GamePage() {
         </div>
     )
   }
-
-  const canShowHint = timeLeft <= PUZZLE_DURATION - (5);
-  const canSkip = timeLeft <= PUZZLE_DURATION - (10);
+  
+  const canShowHint = hintTimeLeft <= 0;
+  const canSkip = skipTimeLeft <= 0;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -569,10 +588,10 @@ export default function GamePage() {
                 </div>
                 <div className="flex items-center gap-2 text-lg font-semibold text-primary">
                     <Timer className="h-6 w-6" />
-                    <span>{formatTime(timeLeft)}</span>
+                    <span>{isPaused ? "Paused" : formatTime(puzzleTimeLeft)}</span>
                 </div>
               </div>
-              <Progress value={(timeLeft / PUZZLE_DURATION) * 100} className="w-full mt-4" />
+              <Progress value={(puzzleTimeLeft / PUZZLE_DURATION) * 100} className="w-full mt-4" />
             </CardHeader>
             <CardContent className="flex-grow">
               <p className="text-lg text-muted-foreground whitespace-pre-wrap">{currentPuzzle.puzzle}</p>
@@ -586,17 +605,17 @@ export default function GamePage() {
               )}
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row gap-2">
-                <Button variant="outline" onClick={handleImmediateHint} disabled={showHint || !currentPuzzle.hint}>
+                <Button variant="outline" onClick={handleImmediateHint} disabled={showHint || !currentPuzzle.hint || isPaused}>
                     <Lightbulb className="mr-2 h-4 w-4" />
                     Get Hint Immediately (-{IMMEDIATE_HINT_PENALTY} pts)
                 </Button>
-                <Button variant="outline" onClick={handleHint} disabled={!canShowHint || showHint || !currentPuzzle.hint}>
+                <Button variant="outline" onClick={handleHint} disabled={!canShowHint || showHint || !currentPuzzle.hint || isPaused}>
                     <Lightbulb className="mr-2 h-4 w-4" />
-                    {showHint ? 'Hint Revealed' : `Get Hint (-${HINT_PENALTY} pts)`}
+                    {showHint ? 'Hint Revealed' : canShowHint ? `Get Hint (-${HINT_PENALTY} pts)` : `Hint in ${formatTime(hintTimeLeft)}`}
                 </Button>
-                <Button variant="secondary" onClick={handleSkip} disabled={!canSkip}>
+                <Button variant="secondary" onClick={handleSkip} disabled={!canSkip || isPaused}>
                     <SkipForward className="mr-2 h-4 w-4" />
-                    Skip Puzzle
+                    {canSkip ? 'Skip Puzzle' : `Skip in ${formatTime(skipTimeLeft)}`}
                 </Button>
             </CardFooter>
           </Card>

@@ -12,6 +12,7 @@ export interface Team {
   pathId?: number;
   currentSubmissionId?: string | null;
   onlineMembers?: { [key: string]: any };
+  currentPuzzleStartTime?: any;
 }
 
 export interface Puzzle {

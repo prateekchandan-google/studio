@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X, Bot, Loader, UserCircle, Users, Key } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { analyzeSubmission } from "@/ai/flows/submission-analyzer";
-import { collection, query, where, onSnapshot, orderBy, writeBatch, doc, increment, getDocs } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy, writeBatch, doc, increment, getDocs, FieldValue, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -56,8 +56,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (puzzles.length === 0 || teams.length === 0) {
-      // Don't set up the listener until we have the lookup data
-      if (!isLoading) setIsLoading(true); // show loader if we re-fetch lookups
+      if (!isLoading) setIsLoading(true);
       return;
     };
 
@@ -105,6 +104,7 @@ export default function AdminDashboardPage() {
             riddlesSolved: increment(1),
             currentPuzzleIndex: increment(1),
             currentSubmissionId: null,
+            currentPuzzleStartTime: serverTimestamp()
         });
     } else { // rejected
         batch.update(submissionRef, { status: "rejected" });
