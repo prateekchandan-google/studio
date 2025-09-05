@@ -275,9 +275,11 @@ export default function GamePage() {
   
   // Camera Effect Hook
   useEffect(() => {
+    let stream: MediaStream | null = null;
+    
     const getCameraPermission = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
         setHasCameraPermission(true);
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -300,11 +302,10 @@ export default function GamePage() {
 
     return () => {
       // Stop stream when component unmounts or dialog closes
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
+      if (stream) {
         stream.getTracks().forEach(track => track.stop());
-        setIsStreaming(false);
       }
+      setIsStreaming(false);
     };
   }, [isCameraDialogOpen, isStreaming, toast]);
   
@@ -759,8 +760,9 @@ export default function GamePage() {
                                     if (videoRef.current && videoRef.current.srcObject) {
                                         const stream = videoRef.current.srcObject as MediaStream;
                                         stream.getTracks().forEach(track => track.stop());
-                                        setIsStreaming(false);
+                                        videoRef.current.srcObject = null;
                                     }
+                                    setIsStreaming(false);
                                 }
                              }}>
                                 <DialogTrigger asChild>
@@ -778,7 +780,7 @@ export default function GamePage() {
                                         ) : (
                                             <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted playsInline />
                                         )}
-                                        {!hasCameraPermission && !capturedImage && (
+                                        {isStreaming && !hasCameraPermission && !capturedImage && (
                                             <Alert variant="destructive">
                                                 <CircleUserRound className="h-4 w-4" />
                                                 <AlertTitle>Camera Permission Needed</AlertTitle>
@@ -846,3 +848,4 @@ export default function GamePage() {
   );
 }
 
+    
