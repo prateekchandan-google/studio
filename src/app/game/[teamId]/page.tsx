@@ -406,13 +406,23 @@ export default function GamePage() {
         return;
     }
 
-    setIsSubmitting(true);
     const formEl = e.target as HTMLFormElement;
+    const formData = new FormData(formEl);
+    const imageFile = formData.get('image-answer') as File;
+
+    if (!capturedImage && (!imageFile || imageFile.size === 0)) {
+        toast({
+            title: 'Image Required',
+            description: 'You must provide a photo with your submission.',
+            variant: 'destructive',
+        });
+        return;
+    }
+
+    setIsSubmitting(true);
 
     try {
-      const formData = new FormData(formEl);
       const textSubmission = formData.get('text-answer') as string;
-      const imageFile = formData.get('image-answer') as File;
 
       const submissionData: any = {
         teamId: team.id,
@@ -774,9 +784,11 @@ export default function GamePage() {
                         <Textarea id="text-answer" name="text-answer" placeholder="Explain how you solved the riddle..." required disabled={isPaused || isSubmitting}/>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="image-answer">Supporting photo (optional)</Label>
+                        <Label htmlFor="image-answer">
+                            Supporting photo <span className="text-destructive">*Required</span>
+                        </Label>
                         <div className="flex gap-2">
-                            <Input id="image-answer" name="image-answer" type="file" accept="image/*" disabled={isPaused || isSubmitting || !!capturedImage} />
+                            <Input id="image-answer" name="image-answer" type="file" accept="image/*" required disabled={isPaused || isSubmitting || !!capturedImage} />
                              <Dialog open={isCameraDialogOpen} onOpenChange={setIsCameraDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button type="button" variant="outline" size="icon" disabled={isPaused || isSubmitting}>
