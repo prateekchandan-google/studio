@@ -138,12 +138,12 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent className="flex-grow space-y-4">
                 <blockquote className="text-sm italic border-l-4 pl-4">"{submission.textSubmission}"</blockquote>
-                {submission.imageSubmissionUrl && (
+                {submission.imageSubmissionDataUri && (
                   <div>
                     <p className="text-sm font-medium mb-2">Photo Submission:</p>
                     <div className="overflow-hidden rounded-lg">
                       <Image
-                        src={submission.imageSubmissionUrl}
+                        src={submission.imageSubmissionDataUri}
                         alt={`Submission from ${submission.teamName}`}
                         width={400}
                         height={300}

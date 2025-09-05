@@ -5,8 +5,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { doc, onSnapshot, collection, query, orderBy, where, addDoc, updateDoc, writeBatch } from 'firebase/firestore';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import type { Puzzle, Team } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Wrench } from 'lucide-react';
+import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut } from 'lucide-react';
 import QRCode from "react-qr-code";
 
 
@@ -208,6 +207,13 @@ export default function GamePage() {
           description: `On to the next challenge!`,
       });
   };
+
+  const fileToDataUri = (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
   
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -221,7 +227,7 @@ export default function GamePage() {
     }
 
     setIsSubmitting(true);
-    const formEl = e.target as HTMLFormElement;
+    const formEl = e.target as HTMLFormFormElement;
 
     try {
       const formData = new FormData(formEl);
@@ -240,11 +246,7 @@ export default function GamePage() {
       };
       
       if (imageFile && imageFile.size > 0) {
-        const storageRef = ref(storage, `submissions/${team.id}/${Date.now()}-${imageFile.name}`);
-        const snapshot = await uploadBytes(storageRef, imageFile);
-        submissionData.imageSubmissionUrl = await getDownloadURL(snapshot.ref);
-      } else {
-        delete submissionData.imageSubmissionUrl;
+        submissionData.imageSubmissionDataUri = await fileToDataUri(imageFile);
       }
 
       const submissionDocRef = await addDoc(collection(db, 'submissions'), submissionData);
@@ -487,4 +489,3 @@ export default function GamePage() {
     </div>
   );
 }
-

@@ -17,7 +17,7 @@ export interface Puzzle {
   title: string;
   puzzle:string;
   hint?: string;
-  solution?: string; // Solution is not needed on the client for gameplay
+  answer?: string;
   pathId?: number;
   order?: number;
 }
@@ -29,7 +29,7 @@ export interface Submission {
   puzzleId: string;
   puzzleTitle: string;
   textSubmission: string;
-  imageSubmissionUrl?: string;
+  imageSubmissionDataUri?: string;
   status: 'pending' | 'approved' | 'rejected';
   timestamp: Date;
   submittedBy?: string;
