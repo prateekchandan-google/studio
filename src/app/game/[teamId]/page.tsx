@@ -211,13 +211,20 @@ export default function GamePage() {
   
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!team || !currentPuzzle || !playerName) return;
+    if (!team || !currentPuzzle || !playerName) {
+        toast({
+            title: 'Cannot Submit',
+            description: 'Player name not found. Please try logging in again.',
+            variant: 'destructive',
+        });
+        return;
+    }
 
     setIsSubmitting(true);
+    const formEl = e.target as HTMLFormElement;
 
     try {
-      const form = e.target as HTMLFormElement;
-      const formData = new FormData(form);
+      const formData = new FormData(formEl);
       const textSubmission = formData.get('text-answer') as string;
       const imageFile = formData.get('image-answer') as File;
 
@@ -236,12 +243,15 @@ export default function GamePage() {
         const storageRef = ref(storage, `submissions/${team.id}/${Date.now()}-${imageFile.name}`);
         const snapshot = await uploadBytes(storageRef, imageFile);
         submissionData.imageSubmissionUrl = await getDownloadURL(snapshot.ref);
+      } else {
+        delete submissionData.imageSubmissionUrl;
       }
 
       const submissionDocRef = await addDoc(collection(db, 'submissions'), submissionData);
       await updateDoc(doc(db, 'teams', team.id), { currentSubmissionId: submissionDocRef.id });
 
       setIsPaused(true);
+      formEl.reset();
       toast({
         title: 'Submission Received!',
         description: 'Your answer is now under review. The timer has been paused.',
@@ -251,7 +261,7 @@ export default function GamePage() {
       console.error("Submission failed:", error);
       toast({
         title: 'Submission Failed',
-        description: 'Could not submit your answer. Please try again.',
+        description: 'Could not submit your answer. Please check your connection and try again.',
         variant: 'destructive'
       });
     } finally {
@@ -478,4 +488,3 @@ export default function GamePage() {
   );
 }
 
-    
