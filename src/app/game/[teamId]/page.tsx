@@ -56,9 +56,9 @@ export default function GamePage() {
 
   // Camera States
   const [isCameraDialogOpen, setIsCameraDialogOpen] = useState(false);
-  const [hasCameraPermission, setHasCameraPermission] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -275,40 +275,40 @@ export default function GamePage() {
   
   // Camera Effect Hook
   useEffect(() => {
-    let stream: MediaStream | null = null;
-    
-    const startStream = async () => {
-      if (isCameraDialogOpen && !isStreaming) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          setHasCameraPermission(true);
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-          setIsStreaming(true);
-        } catch (error) {
-          console.error('Error accessing camera:', error);
-          setHasCameraPermission(false);
-          toast({
-            variant: 'destructive',
-            title: 'Camera Access Denied',
-            description: 'Please enable camera permissions in your browser settings to use this app.',
-          });
-        }
+    async function setupCamera() {
+      if (!isCameraDialogOpen) return;
+
+      try {
+        const cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setStream(cameraStream);
+        setHasCameraPermission(true);
+      } catch (error) {
+        console.error("Error accessing camera:", error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use this app.',
+        });
       }
-    };
-    startStream();
-    
-    // Cleanup function
+    }
+
+    setupCamera();
+
     return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
+      if (stream) {
         stream.getTracks().forEach(track => track.stop());
-        videoRef.current.srcObject = null;
-        setIsStreaming(false);
+        setStream(null);
       }
     };
-  }, [isCameraDialogOpen, isStreaming, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCameraDialogOpen]);
+
+  useEffect(() => {
+    if (stream && videoRef.current) {
+        videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
   
   const handleCapture = () => {
     if (videoRef.current && canvasRef.current) {
@@ -770,7 +770,7 @@ export default function GamePage() {
                                         ) : (
                                             <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted playsInline />
                                         )}
-                                        {isStreaming && !hasCameraPermission && !capturedImage && (
+                                        {!hasCameraPermission && hasCameraPermission !== null && (
                                             <Alert variant="destructive">
                                                 <CircleUserRound className="h-4 w-4" />
                                                 <AlertTitle>Camera Permission Needed</AlertTitle>
@@ -837,3 +837,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
