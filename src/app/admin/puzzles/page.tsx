@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { PlusCircle, Loader, BookOpen, Pencil, Sparkles, GripVertical } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
@@ -28,7 +29,7 @@ const puzzleSchema = z.object({
 
 type PuzzleFormValues = z.infer<typeof puzzleSchema>;
 
-const PuzzleCard = ({ puzzle }: { puzzle: Puzzle }) => {
+const PuzzleCard = ({ puzzle, onOpen }: { puzzle: Puzzle; onOpen: () => void; }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: puzzle.id });
 
   const style = {
@@ -39,7 +40,7 @@ const PuzzleCard = ({ puzzle }: { puzzle: Puzzle }) => {
 
   return (
     <div ref={setNodeRef} style={style} className="mb-4 touch-none">
-      <Card className="bg-muted/50 relative">
+      <Card className="bg-muted/50 relative cursor-pointer" onClick={onOpen}>
         <div {...attributes} {...listeners} className="absolute top-1/2 -translate-y-1/2 left-2 cursor-grab">
             <GripVertical className="text-muted-foreground" />
         </div>
@@ -51,14 +52,14 @@ const PuzzleCard = ({ puzzle }: { puzzle: Puzzle }) => {
   );
 };
 
-const PuzzlePathColumn = ({ id, title, puzzles }: { id: string; title: string; puzzles: Puzzle[] }) => {
+const PuzzlePathColumn = ({ id, title, puzzles, onOpen }: { id: string; title: string; puzzles: Puzzle[]; onOpen: (puzzle: Puzzle) => void; }) => {
     return (
       <div className="bg-card p-4 rounded-lg w-full">
         <h3 className="text-lg font-bold mb-4">{title}</h3>
         <SortableContext items={puzzles.map(p => p.id)} strategy={rectSortingStrategy}>
             <div className="min-h-[200px]">
                 {puzzles.map(puzzle => (
-                    <PuzzleCard key={puzzle.id} puzzle={puzzle} />
+                    <PuzzleCard key={puzzle.id} puzzle={puzzle} onOpen={() => onOpen(puzzle)} />
                 ))}
             </div>
         </SortableContext>
@@ -74,12 +75,25 @@ export default function PuzzleManagementPage() {
   const [editingPuzzle, setEditingPuzzle] = useState<Puzzle | null>(null);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [viewingPuzzle, setViewingPuzzle] = useState<Puzzle | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<PuzzleFormValues>({
     resolver: zodResolver(puzzleSchema),
     defaultValues: { title: '', puzzle: '', hint: '', answer: '' },
   });
+
+  useEffect(() => {
+    if (editingPuzzle) {
+      form.reset({
+        title: editingPuzzle.title,
+        puzzle: editingPuzzle.puzzle,
+        hint: editingPuzzle.hint,
+        answer: editingPuzzle.answer,
+      });
+    }
+  }, [editingPuzzle, form]);
 
   useEffect(() => {
     const puzzlesQuery = query(collection(db, 'puzzles'), orderBy('order', 'asc'));
@@ -189,18 +203,25 @@ export default function PuzzleManagementPage() {
   const onSubmit = async (data: PuzzleFormValues) => {
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, 'puzzles'), {
-        ...data,
-        description: data.puzzle,
-        solution: data.answer,
-        pathId: null,
-        order: puzzles.filter(p => !p.pathId).length, // Add to the end of unassigned
-      });
-      toast({ title: 'Puzzle Added' });
+      if (editingPuzzle) {
+        const puzzleRef = doc(db, 'puzzles', editingPuzzle.id);
+        await updateDoc(puzzleRef, data);
+        toast({ title: 'Puzzle Updated' });
+        setEditingPuzzle(null);
+      } else {
+        await addDoc(collection(db, 'puzzles'), {
+          ...data,
+          description: data.puzzle,
+          solution: data.answer,
+          pathId: null,
+          order: puzzles.filter(p => !p.pathId).length,
+        });
+        toast({ title: 'Puzzle Added' });
+        setShowAddForm(false);
+      }
       form.reset();
-      setShowAddForm(false);
     } catch (error) {
-        console.error('Error adding puzzle:', error);
+        console.error('Error saving puzzle:', error);
         toast({ title: 'Save Failed', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
@@ -238,6 +259,17 @@ export default function PuzzleManagementPage() {
     }
   };
 
+  const openViewDialog = (puzzle: Puzzle) => {
+    setViewingPuzzle(puzzle);
+    setIsViewDialogOpen(true);
+  };
+
+  const openEditForm = (puzzle: Puzzle) => {
+    setEditingPuzzle(puzzle);
+    setShowAddForm(false); 
+    setIsViewDialogOpen(false); 
+  };
+  
   return (
     <div className="container mx-auto py-8 px-4 space-y-8">
       <header className="flex justify-between items-center mb-8">
@@ -245,17 +277,17 @@ export default function PuzzleManagementPage() {
           <h1 className="text-4xl font-headline font-bold tracking-tight lg:text-5xl">Puzzle Management</h1>
           <p className="mt-2 text-lg text-muted-foreground">Drag and drop puzzles to organize them into paths.</p>
         </div>
-        <Button onClick={() => setShowAddForm(!showAddForm)}>
+        <Button onClick={() => { setShowAddForm(!showAddForm); setEditingPuzzle(null); }}>
           <PlusCircle className="mr-2 h-4 w-4" />
           {showAddForm ? 'Cancel' : 'Add New Puzzle'}
         </Button>
       </header>
 
-      {showAddForm && (
+      {(showAddForm || editingPuzzle) && (
         <Card>
             <CardHeader>
-                <CardTitle>Add a New Puzzle</CardTitle>
-                <CardDescription>Fill out the form to create a new puzzle for the hunt.</CardDescription>
+                <CardTitle>{editingPuzzle ? 'Edit Puzzle' : 'Add a New Puzzle'}</CardTitle>
+                <CardDescription>{editingPuzzle ? 'Update the details of your puzzle.' : 'Fill out the form to create a new puzzle for the hunt.'}</CardDescription>
             </CardHeader>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -266,7 +298,7 @@ export default function PuzzleManagementPage() {
                         <FormField control={form.control} name="answer" render={({ field }) => (<FormItem><FormLabel>Answer</FormLabel><FormControl><Input placeholder="The solution to the puzzle" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     </CardContent>
                     <CardFooter className="flex justify-end gap-2">
-                        <Button type="button" variant="ghost" onClick={() => setShowAddForm(false)} disabled={isSubmitting}>Cancel</Button>
+                        <Button type="button" variant="ghost" onClick={() => { setShowAddForm(false); setEditingPuzzle(null); }} disabled={isSubmitting}>Cancel</Button>
                         <Button type="submit" disabled={isSubmitting}>{isSubmitting ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}Save Puzzle</Button>
                     </CardFooter>
                 </form>
@@ -276,12 +308,47 @@ export default function PuzzleManagementPage() {
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-            <PuzzlePathColumn id="unassigned" title="Unassigned" puzzles={puzzlesByPath.unassigned} />
+            <PuzzlePathColumn id="unassigned" title="Unassigned" puzzles={puzzlesByPath.unassigned} onOpen={openViewDialog} />
             {[1, 2, 3, 4, 5].map(i => (
-                <PuzzlePathColumn key={i} id={`path-${i}`} title={`Path ${i}`} puzzles={puzzlesByPath[`path-${i}`]} />
+                <PuzzlePathColumn key={i} id={`path-${i}`} title={`Path ${i}`} puzzles={puzzlesByPath[`path-${i}`]} onOpen={openViewDialog} />
             ))}
         </div>
       </DndContext>
+
+      {viewingPuzzle && (
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{viewingPuzzle.title}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold">Puzzle</h4>
+                <p>{viewingPuzzle.puzzle}</p>
+              </div>
+              {viewingPuzzle.hint && (
+                <div>
+                  <h4 className="font-semibold">Hint</h4>
+                  <p>{viewingPuzzle.hint}</p>
+                </div>
+              )}
+              <div>
+                <h4 className="font-semibold">Answer</h4>
+                <p>{viewingPuzzle.answer}</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="ghost">Close</Button>
+              </DialogClose>
+              <Button onClick={() => openEditForm(viewingPuzzle)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
