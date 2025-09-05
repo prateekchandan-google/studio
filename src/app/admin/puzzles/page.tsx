@@ -218,7 +218,6 @@ export default function PuzzleManagementPage() {
           ...data,
           pathId: data.pathId ? parseInt(data.pathId) : null,
           description: data.puzzle,
-          pathId: null,
           order: puzzles.filter(p => !p.pathId).length,
         });
         toast({ title: 'Puzzle Added' });
@@ -324,7 +323,7 @@ export default function PuzzleManagementPage() {
         </Card>
       )}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragOver={handleDragOver}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           {[1, 2, 3, 4, 5].map(i => (
             <PuzzlePathColumn key={i} id={`path-${i}`} title={`Path ${i}`} puzzles={puzzlesByPath[`path-${i}`]} onOpen={openViewDialog} />
