@@ -1,5 +1,6 @@
 
 
+import type { Timestamp } from 'firebase/firestore';
 
 export interface Team {
   id: string;
@@ -12,9 +13,9 @@ export interface Team {
   secretCode: string;
   pathId?: number;
   currentSubmissionId?: string | null;
-  onlineMembers?: { [key: string]: any };
-  currentPuzzleStartTime?: any;
-  gameStartTime?: any;
+  onlineMembers?: { [key: string]: Timestamp };
+  currentPuzzleStartTime?: Timestamp;
+  gameStartTime?: Timestamp;
 }
 
 export interface Puzzle {
@@ -39,3 +40,5 @@ export interface Submission {
   timestamp: Date;
   submittedBy?: string;
 }
+
+    

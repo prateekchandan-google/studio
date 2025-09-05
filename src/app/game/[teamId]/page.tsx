@@ -4,7 +4,7 @@
 import { useState, useEffect, FormEvent, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { doc, onSnapshot, collection, query, orderBy, where, addDoc, updateDoc, writeBatch, serverTimestamp, getDoc, FieldValue, deleteField } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, orderBy, where, addDoc, updateDoc, writeBatch, serverTimestamp, getDoc, FieldValue, deleteField, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Puzzle, Team } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -268,7 +268,7 @@ export default function GamePage() {
     if (!team) return;
     setShowHint(true);
     const teamRef = doc(db, 'teams', team.id);
-    await updateDoc(teamRef, { score: team.score - HINT_PENALTY });
+    await updateDoc(teamRef, { score: increment(-HINT_PENALTY) });
     toast({
       title: 'Hint Unlocked!',
       description: `${HINT_PENALTY} points have been deducted.`,
@@ -279,7 +279,7 @@ export default function GamePage() {
     if (!team) return;
     setShowHint(true);
     const teamRef = doc(db, 'teams', team.id);
-    await updateDoc(teamRef, { score: team.score - IMMEDIATE_HINT_PENALTY });
+    await updateDoc(teamRef, { score: increment(-IMMEDIATE_HINT_PENALTY) });
     toast({
       title: 'Hint Unlocked!',
       description: `${IMMEDIATE_HINT_PENALTY} points have been deducted.`,
@@ -696,3 +696,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
