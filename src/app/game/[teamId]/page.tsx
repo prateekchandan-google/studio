@@ -339,7 +339,7 @@ export default function GamePage() {
               <Progress value={(timeLeft / PUZZLE_DURATION) * 100} className="w-full mt-2" />
             </CardHeader>
             <CardContent className="flex-grow">
-              <p className="text-lg text-muted-foreground whitespace-pre-wrap">{currentPuzzle.description}</p>
+              <p className="text-lg text-muted-foreground whitespace-pre-wrap">{currentPuzzle.puzzle}</p>
               
               {showHint && (
                  <Alert className="mt-6 bg-accent/20 border-accent">

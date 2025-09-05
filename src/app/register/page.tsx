@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -86,18 +86,34 @@ export default function RegistrationPage() {
     setIsSubmitting(true);
     const teamId = `${data.houseName.toLowerCase()}-${Math.random().toString(36).substring(2, 8)}`;
 
-    const newTeam: Team = {
-      id: teamId,
-      name: data.teamName,
-      house: data.houseName,
-      members: data.members.map(m => m.name),
-      score: 0,
-      riddlesSolved: 0,
-      currentPuzzleIndex: 0,
-      secretCode: teamId
-    };
-    
     try {
+      const teamsRef = collection(db, 'teams');
+      const q = query(teamsRef, where("house", "==", data.houseName));
+      const querySnapshot = await getDocs(q);
+      const existingPathIds = querySnapshot.docs.map(doc => (doc.data() as Team).pathId).filter(id => id !== undefined);
+
+      const allPaths = [1, 2, 3, 4, 5];
+      const availablePaths = allPaths.filter(p => !existingPathIds.includes(p));
+
+      let assignedPathId: number;
+      if (availablePaths.length > 0) {
+        assignedPathId = availablePaths[Math.floor(Math.random() * availablePaths.length)];
+      } else {
+        assignedPathId = allPaths[Math.floor(Math.random() * allPaths.length)];
+      }
+      
+      const newTeam: Team = {
+        id: teamId,
+        name: data.teamName,
+        house: data.houseName,
+        members: data.members.map(m => m.name),
+        score: 0,
+        riddlesSolved: 0,
+        currentPuzzleIndex: 0,
+        secretCode: teamId,
+        pathId: assignedPathId,
+      };
+    
       await setDoc(doc(db, "teams", teamId), newTeam);
       setSecretCode(teamId);
     } catch (error) {
@@ -242,7 +258,7 @@ export default function RegistrationPage() {
                 ))}
                  {form.formState.errors.members && (fields.length < 3 || fields.length > 7) && (
                     <p className="text-sm font-medium text-destructive">
-                        {form.formState.errors.members.message}
+                        {form.formState.errors.message}
                     </p>
                 )}
                 {fields.length < 7 && (

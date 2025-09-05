@@ -7,12 +7,13 @@ export interface Team {
   riddlesSolved: number;
   currentPuzzleIndex: number;
   secretCode: string;
+  pathId?: number; 
 }
 
 export interface Puzzle {
-  id: string; // Changed from number to string to support Firestore IDs
+  id: string; 
   title: string;
-  description:string;
+  puzzle:string;
   hint: string;
   solution: string;
   pathId: number;
@@ -23,7 +24,7 @@ export interface Submission {
   id: string;
   teamId: string;
   teamName: string;
-  puzzleId: string; // Changed from number to string
+  puzzleId: string;
   puzzleTitle: string;
   textSubmission: string;
   imageSubmissionUrl?: string;

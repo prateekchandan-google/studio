@@ -13,7 +13,6 @@ const navLinks = [
   { href: "/", label: "Start Game" },
   { href: "/register", label: "Register" },
   { href: "/scoreboard", label: "Scoreboard" },
-  { href: "/admin", label: "Admin" },
 ];
 
 export function Header() {
