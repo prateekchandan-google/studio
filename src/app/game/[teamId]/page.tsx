@@ -210,51 +210,53 @@ export default function GamePage() {
   };
   
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      if (!team || !currentPuzzle || !playerName) return;
+    e.preventDefault();
+    if (!team || !currentPuzzle || !playerName) return;
 
-      setIsSubmitting(true);
+    setIsSubmitting(true);
 
+    try {
       const form = e.target as HTMLFormElement;
       const formData = new FormData(form);
       const textSubmission = formData.get('text-answer') as string;
       const imageFile = formData.get('image-answer') as File;
 
-      let imageSubmissionUrl: string | undefined = undefined;
-
-      try {
-        if (imageFile && imageFile.size > 0) {
-            const storageRef = ref(storage, `submissions/${team.id}/${Date.now()}-${imageFile.name}`);
-            const snapshot = await uploadBytes(storageRef, imageFile);
-            imageSubmissionUrl = await getDownloadURL(snapshot.ref);
-        }
-
-        const submissionData = {
-            teamId: team.id,
-            teamName: team.name,
-            puzzleId: currentPuzzle.id,
-            puzzleTitle: currentPuzzle.title,
-            textSubmission,
-            imageSubmissionUrl,
-            status: 'pending',
-            timestamp: new Date(),
-            submittedBy: playerName,
-        };
-
-        const submissionDocRef = await addDoc(collection(db, 'submissions'), submissionData);
-        await updateDoc(doc(db, 'teams', team.id), { currentSubmissionId: submissionDocRef.id });
-
-        setIsPaused(true);
-        toast({
-            title: 'Submission Received!',
-            description: 'Your answer is now under review. The timer has been paused.',
-        });
-      } catch (error) {
-        console.error("Submission failed:", error);
-        toast({ title: 'Submission Failed', description: 'Could not submit your answer. Please try again.', variant: 'destructive'});
-      } finally {
-        setIsSubmitting(false);
+      const submissionData: any = {
+        teamId: team.id,
+        teamName: team.name,
+        puzzleId: currentPuzzle.id,
+        puzzleTitle: currentPuzzle.title,
+        textSubmission,
+        status: 'pending',
+        timestamp: new Date(),
+        submittedBy: playerName,
+      };
+      
+      if (imageFile && imageFile.size > 0) {
+        const storageRef = ref(storage, `submissions/${team.id}/${Date.now()}-${imageFile.name}`);
+        const snapshot = await uploadBytes(storageRef, imageFile);
+        submissionData.imageSubmissionUrl = await getDownloadURL(snapshot.ref);
       }
+
+      const submissionDocRef = await addDoc(collection(db, 'submissions'), submissionData);
+      await updateDoc(doc(db, 'teams', team.id), { currentSubmissionId: submissionDocRef.id });
+
+      setIsPaused(true);
+      toast({
+        title: 'Submission Received!',
+        description: 'Your answer is now under review. The timer has been paused.',
+      });
+
+    } catch (error) {
+      console.error("Submission failed:", error);
+      toast({
+        title: 'Submission Failed',
+        description: 'Could not submit your answer. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -475,3 +477,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
