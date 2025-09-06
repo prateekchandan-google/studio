@@ -15,11 +15,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { PlusCircle, Loader, BookOpen, Pencil, Sparkles, GripVertical } from 'lucide-react';
+import { PlusCircle, Loader, BookOpen, Pencil, Sparkles, GripVertical, View } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const puzzleSchema = z.object({
   title: z.string().min(3, 'Puzzle title must be at least 3 characters.'),
@@ -31,7 +33,7 @@ const puzzleSchema = z.object({
 
 type PuzzleFormValues = z.infer<typeof puzzleSchema>;
 
-const PuzzleCard = ({ puzzle, onOpen }: { puzzle: Puzzle; onOpen: () => void; }) => {
+const PuzzleCard = ({ puzzle, onOpen, isDetailedView, onEdit }: { puzzle: Puzzle; onOpen: () => void; isDetailedView: boolean, onEdit: () => void; }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: puzzle.id });
 
   const style = {
@@ -42,26 +44,51 @@ const PuzzleCard = ({ puzzle, onOpen }: { puzzle: Puzzle; onOpen: () => void; })
 
   return (
     <div ref={setNodeRef} style={style} className="mb-4 touch-none">
-      <Card className="bg-muted/50 relative cursor-pointer" onClick={onOpen}>
+      <Card className="bg-muted/50 relative cursor-pointer" onClick={!isDetailedView ? onOpen : undefined}>
         <div {...attributes} {...listeners} className="absolute top-1/2 -translate-y-1/2 left-2 cursor-grab">
           <GripVertical className="text-muted-foreground" />
         </div>
         <CardHeader>
           <CardTitle className="text-base pl-6">{puzzle.title}</CardTitle>
         </CardHeader>
+        {isDetailedView && (
+          <CardContent className="space-y-3 pl-10 text-sm">
+             <div>
+                <h4 className="font-semibold text-muted-foreground">Puzzle</h4>
+                <p className="whitespace-pre-wrap">{puzzle.puzzle}</p>
+              </div>
+              {puzzle.hint && (
+                <div>
+                    <h4 className="font-semibold text-muted-foreground">Hint</h4>
+                    <p>{puzzle.hint}</p>
+                </div>
+              )}
+              <div>
+                <h4 className="font-semibold text-muted-foreground">Answer</h4>
+                <p className="font-mono bg-secondary/50 p-1 rounded text-xs">{puzzle.answer}</p>
+              </div>
+          </CardContent>
+        )}
+        {isDetailedView && (
+             <CardFooter className="pl-10 pb-4 justify-end">
+                <Button variant="outline" size="sm" onClick={onEdit}>
+                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                </Button>
+            </CardFooter>
+        )}
       </Card>
     </div>
   );
 };
 
-const PuzzlePathColumn = ({ id, title, puzzles = [], onOpen }: { id: string; title: string; puzzles?: Puzzle[]; onOpen: (puzzle: Puzzle) => void; }) => {
+const PuzzlePathColumn = ({ id, title, puzzles = [], onOpen, isDetailedView, onEdit }: { id: string; title: string; puzzles?: Puzzle[]; onOpen: (puzzle: Puzzle) => void; isDetailedView: boolean; onEdit: (puzzle: Puzzle) => void; }) => {
   return (
     <div className="bg-card p-4 rounded-lg w-full">
       <h3 className="text-lg font-bold mb-4">{title}</h3>
       <SortableContext items={puzzles.map(p => p.id)} strategy={rectSortingStrategy}>
         <div className="min-h-[200px]">
           {puzzles.map(puzzle => (
-            <PuzzleCard key={puzzle.id} puzzle={puzzle} onOpen={() => onOpen(puzzle)} />
+            <PuzzleCard key={puzzle.id} puzzle={puzzle} onOpen={() => onOpen(puzzle)} isDetailedView={isDetailedView} onEdit={() => onEdit(puzzle)} />
           ))}
         </div>
       </SortableContext>
@@ -71,7 +98,7 @@ const PuzzlePathColumn = ({ id, title, puzzles = [], onOpen }: { id: string; tit
 
 export default function PuzzleManagementPage() {
   const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // Keep loading state
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPuzzle, setEditingPuzzle] = useState<Puzzle | null>(null);
@@ -79,9 +106,10 @@ export default function PuzzleManagementPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [viewingPuzzle, setViewingPuzzle] = useState<Puzzle | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isDetailedView, setIsDetailedView] = useState(false);
   const { toast } = useToast();
 
-  const form = useForm<PuzzleFormValues>({ // Keep form initialization
+  const form = useForm<PuzzleFormValues>({
     resolver: zodResolver(puzzleSchema),
     defaultValues: { title: '', puzzle: '', hint: '', answer: '', pathId: null },
   });
@@ -270,21 +298,31 @@ export default function PuzzleManagementPage() {
 
   const openEditForm = (puzzle: Puzzle) => {
     setEditingPuzzle(puzzle);
-    setShowAddForm(false);
-    setIsViewDialogOpen(false);
+    setShowAddForm(true); // Open the form for editing
+    setIsViewDialogOpen(false); // Close the view dialog if it was open
   };
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-8">
-      <header className="flex justify-between items-center mb-8">
+      <header className="flex justify-between items-start mb-8 flex-wrap gap-4">
         <div>
           <h1 className="text-4xl font-headline font-bold tracking-tight lg:text-5xl">Puzzle Management</h1>
           <p className="mt-2 text-lg text-muted-foreground">Drag and drop puzzles to organize them into paths.</p>
         </div>
-        <Button onClick={() => { setShowAddForm(!showAddForm); setEditingPuzzle(null); }}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          {showAddForm ? 'Cancel' : 'Add New Puzzle'}
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center space-x-2">
+            <Switch
+                id="detailed-view"
+                checked={isDetailedView}
+                onCheckedChange={setIsDetailedView}
+            />
+            <Label htmlFor="detailed-view">Detailed View</Label>
+          </div>
+          <Button onClick={() => { setShowAddForm(!showAddForm); setEditingPuzzle(null); }}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            {showAddForm && !editingPuzzle ? 'Cancel' : 'Add New Puzzle'}
+          </Button>
+        </div>
       </header>
 
       {(showAddForm || editingPuzzle) && (
@@ -326,7 +364,7 @@ export default function PuzzleManagementPage() {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragOver={handleDragOver}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           {[1, 2, 3, 4, 5].map(i => (
-            <PuzzlePathColumn key={i} id={`path-${i}`} title={`Path ${i}`} puzzles={puzzlesByPath[`path-${i}`]} onOpen={openViewDialog} />
+            <PuzzlePathColumn key={i} id={`path-${i}`} title={`Path ${i}`} puzzles={puzzlesByPath[`path-${i}`]} onOpen={openViewDialog} isDetailedView={isDetailedView} onEdit={openEditForm} />
           ))}
         </div>
       </DndContext>
@@ -346,6 +384,12 @@ export default function PuzzleManagementPage() {
                 <h4 className="font-semibold">Answer</h4>
                 <p>{viewingPuzzle.answer}</p>
               </div>
+               {viewingPuzzle.hint && (
+                    <div>
+                        <h4 className="font-semibold">Hint</h4>
+                        <p>{viewingPuzzle.hint}</p>
+                    </div>
+                )}
             </div>
             <DialogFooter>
               <DialogClose asChild>
