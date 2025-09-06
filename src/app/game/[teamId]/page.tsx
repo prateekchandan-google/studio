@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Sparkles, Trophy, Users, Camera, CircleUserRound, Replace, X, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import QRCode from "react-qr-code";
 import Image from 'next/image';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
 const HINT_PENALTY = 5;
