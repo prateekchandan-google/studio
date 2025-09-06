@@ -2,43 +2,38 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Award, Camera, Clock, HelpCircle, Lightbulb, Trophy, Target, MapPin } from "lucide-react";
+import { Award, Camera, Clock, Lightbulb, Trophy, Target, MapPin } from "lucide-react";
 
 const rules = [
     {
         icon: Target,
-        title: "Objective",
-        description: "Your team's goal is to solve a series of puzzles and riddles as quickly as possible. The team with the highest score at the end of the game wins!"
+        title: "The Goal",
+        description: "Your objective is to solve a series of puzzles as quickly as possible within the <strong>60-minute</strong> time limit. The team with the most points at the end wins! In case of a tie, the team that finished first wins."
     },
-     {
+    {
         icon: MapPin,
         title: "Location",
         description: "The entire treasure hunt is confined to the <strong>Ananta building</strong>. All clues, answers, and required actions will be found within the building's premises."
     },
     {
-        icon: Clock,
-        title: "Game Duration",
-        description: "The entire treasure hunt is timed. Each team has exactly <strong>60 minutes</strong> to solve as many puzzles as they can. The main timer starts when the first team member logs in after the game is live."
-    },
-    {
         icon: Award,
         title: "Scoring System",
-        description: "Points are awarded for correct solutions and deducted for using hints. A correct puzzle solution earns your team <strong>20 points</strong>."
+        description: "A correct puzzle solution earns your team <strong>20 points</strong>. Points are deducted for using hints, so use them wisely!"
     },
     {
         icon: Lightbulb,
         title: "Hints & Skips",
-        description: "Hints are available to help you out. A standard hint is available after 5 minutes for a <strong>5-point penalty</strong>. An immediate hint can be used anytime for a <strong>10-point penalty</strong>. You can skip a puzzle after 10 minutes, but you will receive no points for it."
+        description: "A standard hint is available after 5 minutes for a <strong>5-point penalty</strong>. An immediate hint costs <strong>10 points</strong>. You can skip a puzzle after 10 minutes for no points."
     },
     {
         icon: Camera,
-        title: "Mandatory Selfie/Photo",
-        description: "Every puzzle solution <strong>MUST be accompanied by a supporting photograph</strong>. This could be a selfie of your team at a location or a photo of the object that is the answer to the riddle. No photo, no points!"
+        title: "Mandatory Photo",
+        description: "Every puzzle solution <strong>MUST be accompanied by a supporting photograph</strong>. This could be a selfie of your team or a photo of the answer. No photo, no points!"
     },
     {
         icon: Trophy,
-        title: "Winning",
-        description: "The team with the most points at the end of the 60 minutes wins. If there's a tie, the team that reached their final score first will be the winner. Good luck!"
+        title: "Fair Play",
+        description: "This game is about fun and teamwork. Please respect other teams and the location. No cheating, and may the best team win!"
     }
 ];
 
@@ -71,9 +66,9 @@ export default function RulesPage() {
             </div>
 
             <div className="mt-12 text-center">
-                <h2 className="text-2xl font-bold font-headline">Fair Play</h2>
+                <h2 className="text-2xl font-bold font-headline">Good Luck!</h2>
                 <p className="mt-2 text-muted-foreground max-w-2xl mx-auto">
-                    This game is all about fun, teamwork, and a bit of friendly competition. Please respect the game, other teams, and the locations you might visit. No cheating, and may the best team win!
+                   Now that you know the rules, it's time to get in the game. Assemble your team and prepare for an adventure!
                 </p>
             </div>
         </div>
