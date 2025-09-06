@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Puzzle, CheckSquare, LogOut, GalleryHorizontal, ArrowLeft, PanelLeft } from 'lucide-react';
+import { Home, Users, Puzzle, CheckSquare, LogOut, GalleryHorizontal, ArrowLeft, PanelLeft, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
@@ -113,7 +113,7 @@ export default function AdminLayout({
         </nav>
         <div className="mt-auto">
             <Button variant="outline" className="w-full" onClick={handleExitAdmin}>
-                <LogOut className="mr-2 h-4 w-4" />
+                <LogOut className={cn(!isCollapsed && "mr-2 h-4 w-4")} />
                 <span className={cn(isCollapsed && "hidden")}>Exit Admin</span>
             </Button>
         </div>
@@ -122,10 +122,10 @@ export default function AdminLayout({
         <Button 
             variant="outline" 
             size="icon" 
-            className="absolute top-6 left-[-1.25rem] z-10 bg-background"
+            className="absolute top-6 left-[-1.25rem] z-10 bg-background rounded-full border-2 h-10 w-10"
             onClick={() => setIsCollapsed(!isCollapsed)}
             >
-            <PanelLeft className="h-5 w-5" />
+            {isCollapsed ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
         </Button>
         {children}
       </main>
