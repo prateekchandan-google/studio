@@ -4,7 +4,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { Header } from '@/components/header';
 
 export default function GalleryLayout({
   children,
@@ -13,7 +12,6 @@ export default function GalleryLayout({
 }) {
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <div className="container py-8">
         <Button variant="outline" asChild className="mb-6">
             <Link href="/admin">

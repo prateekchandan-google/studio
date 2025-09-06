@@ -49,8 +49,8 @@ export default function AdminLayout({
     );
   }
   
+  // Let the root layout handle the gallery now
   if (pathname === '/admin/gallery') {
-    // The gallery has its own specific layout
     return <>{children}</>;
   }
 
