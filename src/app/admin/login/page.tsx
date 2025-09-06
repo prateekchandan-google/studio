@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -27,35 +28,33 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-      <Card className="w-full max-w-sm">
+    <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
+        <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
             <Lock className="w-8 h-8 text-primary" />
-          </div>
-          <CardTitle className="font-headline text-2xl">Admin Access</CardTitle>
-          <CardDescription>Enter the secret code to access the dashboard.</CardDescription>
+        </div>
+        <CardTitle className="font-headline text-2xl">Admin Access</CardTitle>
+        <CardDescription>Enter the secret code to access the dashboard.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="secret-code">Secret Code</Label>
-              <Input
+            <Label htmlFor="secret-code">Secret Code</Label>
+            <Input
                 id="secret-code"
                 type="password"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 required
                 placeholder="••••••••"
-              />
+            />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full">
-              Unlock
+            Unlock
             </Button>
-          </form>
+        </form>
         </CardContent>
-      </Card>
-    </div>
+    </Card>
   );
 }

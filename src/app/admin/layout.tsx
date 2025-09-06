@@ -3,10 +3,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Puzzle, CheckSquare, LogOut, GalleryHorizontal } from 'lucide-react';
+import { Home, Users, Puzzle, CheckSquare, LogOut, GalleryHorizontal, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 const navLinks = [
   { href: '/admin', label: 'Home', icon: Home },
@@ -39,43 +40,67 @@ export default function AdminLayout({
     localStorage.removeItem('pathfinder-admin-auth');
     window.location.replace('/admin/login');
   };
-
-  if (!isVerified && pathname !== '/admin/login') {
+  
+  if (pathname === '/admin/login') {
     return (
-        <div className="flex items-center justify-center min-h-screen">
-            {/* You can add a loader here */}
+        <div className="min-h-screen bg-background flex items-center justify-center">
+            {isVerified ? children : null}
         </div>
     );
   }
   
-  if (pathname === '/admin/login' || pathname === '/admin/gallery') {
+  if (pathname === '/admin/gallery') {
+    // The gallery has its own specific layout
     return <>{children}</>;
   }
 
+  if (!isVerified) {
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+            <p>Verifying access...</p>
+        </div>
+    );
+  }
+
+
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen bg-background">
       <aside className="w-64 flex-shrink-0 border-r bg-card p-4 flex flex-col">
         <div className="mb-8">
+            <Button variant="outline" asChild className="mb-4">
+                 <Link href="/">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Main Site
+                </Link>
+            </Button>
           <h2 className="text-2xl font.headline font-bold">Admin Panel</h2>
           <p className="text-sm text-muted-foreground">Treasure Hunt Control</p>
         </div>
         <nav className="flex flex-col gap-2 flex-grow">
+         <TooltipProvider>
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
-                  isActive && 'bg-primary/10 text-primary font-semibold'
-                )}
-              >
-                <link.icon className="h-4 w-4" />
-                {link.label}
-              </Link>
+              <Tooltip key={link.href} delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Link
+                    href={link.href}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
+                      isActive && 'bg-primary/10 text-primary font-semibold'
+                    )}
+                  >
+                    <link.icon className="h-4 w-4" />
+                    <span className="truncate">{link.label}</span>
+                  </Link>
+                </TooltipTrigger>
+                 <TooltipContent side="right" align="center">
+                    {link.label}
+                 </TooltipContent>
+              </Tooltip>
             );
           })}
+          </TooltipProvider>
         </nav>
         <div className="mt-auto">
             <Button variant="outline" className="w-full" onClick={handleExitAdmin}>
@@ -84,7 +109,7 @@ export default function AdminLayout({
             </Button>
         </div>
       </aside>
-      <main className="flex-1 p-8 bg-background">{children}</main>
+      <main className="flex-1 p-8 overflow-y-auto">{children}</main>
     </div>
   );
 }
