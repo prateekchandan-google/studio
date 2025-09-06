@@ -16,6 +16,7 @@ import { GameSettings } from "@/lib/types";
 
 const baseNavLinks = [
   { href: "/", label: "Start Game" },
+  { href: "/rules", label: "Rules" },
   { href: "/scoreboard", label: "Scoreboard" },
 ];
 
