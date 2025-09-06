@@ -16,10 +16,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Sparkles, Trophy, Users, Camera, CircleUserRound, Replace, X, CheckCircle2, XCircle } from 'lucide-react';
+import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Sparkles, Trophy, Users, Camera, CircleUserRound, Replace, X, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import QRCode from "react-qr-code";
 import Image from 'next/image';
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
 const HINT_PENALTY = 5;
@@ -93,13 +93,11 @@ export default function GamePage() {
   }, []);
 
   useEffect(() => {
-    if (gameSettings?.isStarted) {
-      const gameJustStarted = prevGameStartedRef.current !== true && gameSettings.isStarted === true;
-      if (gameJustStarted && team && !team.gameStartTime) {
-        setShowLiveStartDialog(true);
-      }
-      prevGameStartedRef.current = gameSettings.isStarted;
+    const gameJustStarted = prevGameStartedRef.current === false && gameSettings?.isStarted === true;
+    if (gameJustStarted && team && !team.gameStartTime) {
+      setShowLiveStartDialog(true);
     }
+    prevGameStartedRef.current = gameSettings?.isStarted;
   }, [gameSettings, team]);
 
 
@@ -584,10 +582,27 @@ export default function GamePage() {
             </div>
           </DialogContent>
         </Dialog>
-        <Button variant="ghost" size="sm" onClick={handleExitGame}>
-          <LogOut className="mr-2 h-4 w-4" />
-          Exit Game
-        </Button>
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Exit Game
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure you want to exit?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Make sure you have saved your secret code before you leave. You will need it to log back in.
+                        <div className="bg-muted p-3 rounded-lg font-mono text-center my-4">{team.secretCode}</div>
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Stay</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleExitGame}>Exit Game</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

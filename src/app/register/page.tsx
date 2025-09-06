@@ -37,6 +37,7 @@ export default function RegistrationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingName, setIsGeneratingName] = useState(false);
   const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
+  const [newlyRegisteredTeam, setNewlyRegisteredTeam] = useState<Team | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -127,7 +128,8 @@ export default function RegistrationPage() {
       };
     
       await setDoc(doc(db, "teams", teamId), newTeam);
-      localStorage.setItem('pathfinder-active-teamId', teamId);
+      
+      setNewlyRegisteredTeam(newTeam as Team);
       setSecretCode(teamId);
     } catch (error) {
         console.error("Could not save team to Firestore", error);
@@ -150,8 +152,11 @@ export default function RegistrationPage() {
   };
 
   const proceedToGame = () => {
-    if (secretCode) {
-      router.push(`/?secretCode=${encodeURIComponent(secretCode)}`);
+    if (newlyRegisteredTeam) {
+      // The user who registered is the first player.
+      localStorage.setItem('pathfinder-active-teamId', newlyRegisteredTeam.id);
+      localStorage.setItem(`pathfinder-player-${newlyRegisteredTeam.id}`, newlyRegisteredTeam.members[0]);
+      router.push(`/game/${newlyRegisteredTeam.id}`);
     }
   }
 
@@ -186,12 +191,12 @@ export default function RegistrationPage() {
                         </Button>
                     </div>
                      <p className="text-sm text-muted-foreground mt-4">
-                        The game has not started yet. Please visit this page on Sept 10th, 2:00 PM to begin. You can log in with this code.
+                        Please note your game code. You can log in with this code. If the game has not started, please visit this page on Sept 10th, 2:00 PM to begin.
                     </p>
                 </CardContent>
                 <CardFooter>
                      <Button className="w-full" onClick={proceedToGame}>
-                        Proceed to Game Login <ArrowRight className="ml-2 h-4 w-4" />
+                        Continue <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                 </CardFooter>
             </Card>

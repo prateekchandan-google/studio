@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -21,6 +22,7 @@ const baseNavLinks = [
 export function Header() {
   const pathname = usePathname();
   const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
+  const [hasActiveSession, setHasActiveSession] = useState(false);
 
   useEffect(() => {
     const settingsRef = doc(db, 'settings', 'game');
@@ -34,6 +36,15 @@ export function Header() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    // This effect runs on the client and checks local storage.
+    if (typeof window !== 'undefined') {
+        const activeTeamId = localStorage.getItem('pathfinder-active-teamId');
+        setHasActiveSession(!!activeTeamId);
+    }
+  }, [pathname]); // Rerun when path changes to catch login/logout
+
+
   const getLinkClass = (href: string) => {
     // Special handling for game routes
     if (href === "/" && (pathname.startsWith('/game') || pathname === '/')) {
@@ -41,10 +52,11 @@ export function Header() {
     }
     return pathname === href ? "text-foreground" : "text-foreground/60";
   };
-
-  const navLinks = gameSettings?.isRegistrationOpen
-    ? [baseNavLinks[0], { href: "/register", label: "Register" }, baseNavLinks[1]]
-    : baseNavLinks;
+  
+  let navLinks = [...baseNavLinks];
+  if (gameSettings?.isRegistrationOpen && !hasActiveSession) {
+    navLinks.splice(1, 0, { href: "/register", label: "Register" });
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
