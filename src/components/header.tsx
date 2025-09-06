@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Loader } from "lucide-react";
+import { Menu, Loader, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
 import { useEffect, useState } from "react";
@@ -24,6 +24,7 @@ export function Header() {
   const pathname = usePathname();
   const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
   const [hasActiveSession, setHasActiveSession] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isSessionLoading, setIsSessionLoading] = useState(true);
 
 
@@ -40,14 +41,15 @@ export function Header() {
   }, []);
 
   useEffect(() => {
-    // This effect runs on the client and checks local storage.
     setIsSessionLoading(true);
     if (typeof window !== 'undefined') {
         const activeTeamId = localStorage.getItem('pathfinder-active-teamId');
+        const adminAuth = localStorage.getItem('pathfinder-admin-auth') === 'true';
         setHasActiveSession(!!activeTeamId);
+        setIsAdmin(adminAuth);
     }
     setIsSessionLoading(false);
-  }, [pathname]); // Rerun when path changes to catch login/logout
+  }, [pathname]);
 
 
   const getLinkClass = (href: string) => {
@@ -61,6 +63,10 @@ export function Header() {
   let navLinks = [...baseNavLinks];
   if (gameSettings?.isRegistrationOpen && !hasActiveSession) {
     navLinks.splice(1, 0, { href: "/register", label: "Register" });
+  }
+
+  if (isAdmin) {
+    navLinks.push({ href: "/admin/gallery", label: "Gallery" });
   }
 
   const renderNavLinks = (isMobile = false) => {
@@ -120,7 +126,14 @@ export function Header() {
             </SheetContent>
           </Sheet>
         </div>
-        <div className="hidden md:flex flex-1 items-center justify-end">
+        <div className="hidden md:flex flex-1 items-center justify-end gap-2">
+          {isAdmin && (
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/admin">
+                <Shield className="w-4 h-4 mr-2" /> Admin Panel
+              </Link>
+            </Button>
+          )}
           <ThemeToggle />
         </div>
       </div>

@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Puzzle, CheckSquare, LogOut } from 'lucide-react';
+import { Home, Users, Puzzle, CheckSquare, LogOut, GalleryHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
@@ -13,6 +13,7 @@ const navLinks = [
   { href: '/admin/submission', label: 'Submissions', icon: CheckSquare },
   { href: '/admin/teams', label: 'Team Management', icon: Users },
   { href: '/admin/puzzles', label: 'Puzzle Management', icon: Puzzle },
+  { href: '/admin/gallery', label: 'Gallery', icon: GalleryHorizontal },
 ];
 
 export default function AdminLayout({
