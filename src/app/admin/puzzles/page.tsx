@@ -24,6 +24,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Badge } from '@/components/ui/badge';
 
 const puzzleSchema = z.object({
   title: z.string().min(3, 'Puzzle title must be at least 3 characters.'),
@@ -100,7 +101,10 @@ const PuzzleCard = ({ puzzle, onOpen, isDetailedView, onEdit }: { puzzle: Puzzle
 const PuzzlePathColumn = ({ id, title, puzzles = [], onOpen, isDetailedView, onEdit }: { id: string; title: string; puzzles?: Puzzle[]; onOpen: (puzzle: Puzzle) => void; isDetailedView: boolean; onEdit: (puzzle: Puzzle) => void; }) => {
   return (
     <div className="bg-card p-4 rounded-lg w-full">
-      <h3 className="text-lg font-bold mb-4">{title}</h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-bold">{title}</h3>
+        <Badge variant="secondary">{puzzles.length} Puzzles</Badge>
+      </div>
       <SortableContext items={puzzles.map(p => p.id)} strategy={rectSortingStrategy}>
         <div className="min-h-[200px]">
           {puzzles.map(puzzle => (
@@ -422,5 +426,3 @@ export default function PuzzleManagementPage() {
     </div>
   );
 }
-
-    
