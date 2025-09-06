@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckSquare, Puzzle, Users, Gamepad2, Timer } from "lucide-react";
+import { CheckSquare, Puzzle, Users, Gamepad2, Timer, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -43,7 +43,7 @@ export default function AdminHomePage() {
             if (doc.exists()) {
                 setGameSettings(doc.data() as GameSettings);
             } else {
-                setGameSettings({ isStarted: false, isRegistrationOpen: false });
+                setGameSettings({ isStarted: false, isRegistrationOpen: false, allowExit: false });
             }
         });
         return () => unsubscribe();
@@ -78,6 +78,20 @@ export default function AdminHomePage() {
         } catch (error) {
             console.error("Failed to update registration status:", error);
             toast({ title: 'Error', description: 'Could not update registration status.', variant: 'destructive' });
+        }
+    };
+
+    const handleAllowExitToggle = async (allowExit: boolean) => {
+        const settingsRef = doc(db, 'settings', 'game');
+        try {
+            await updateDoc(settingsRef, { allowExit });
+            toast({
+                title: allowExit ? "Game Exit Enabled" : "Game Exit Disabled",
+                description: allowExit ? "Players can now exit the game." : "Players can no longer exit the game.",
+            });
+        } catch (error) {
+            console.error("Failed to update exit status:", error);
+            toast({ title: 'Error', description: 'Could not update exit status.', variant: 'destructive' });
         }
     };
 
@@ -123,6 +137,24 @@ export default function AdminHomePage() {
                         <Label htmlFor="registration-switch" className="text-lg flex-grow">
                             {gameSettings?.isRegistrationOpen ? 'Registration is Open' : 'Registration is Closed'}
                         </Label>
+                    </div>
+                     <div className="flex items-center space-x-4">
+                        <Switch
+                            id="allow-exit-switch"
+                            checked={gameSettings?.allowExit || false}
+                            onCheckedChange={handleAllowExitToggle}
+                            aria-readonly
+                        />
+                        <Label htmlFor="allow-exit-switch" className="text-lg flex-grow">
+                           {gameSettings?.allowExit ? 'Player Exit is Enabled' : 'Player Exit is Disabled'}
+                        </Label>
+                    </div>
+                    <div className="flex items-start gap-3 rounded-lg border border-warning/50 bg-warning/10 p-3 text-warning-foreground">
+                        <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-1" />
+                        <div>
+                            <p className="font-semibold">Enable player exit for testing only</p>
+                            <p className="text-sm text-warning-foreground/80">Allowing players to exit can disrupt the game flow. Only enable this for debugging or testing purposes.</p>
+                        </div>
                     </div>
                 </CardContent>
                 {gameSettings?.isStarted && gameSettings.startTime && (

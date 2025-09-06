@@ -45,4 +45,5 @@ export interface GameSettings {
     isStarted: boolean;
     isRegistrationOpen: boolean;
     startTime?: Timestamp;
+    allowExit?: boolean;
 }

@@ -86,7 +86,7 @@ export default function GamePage() {
             const newSettings = doc.data() as GameSettings;
             setGameSettings(newSettings);
         } else {
-            setGameSettings({ isStarted: false });
+            setGameSettings({ isStarted: false, isRegistrationOpen: false, allowExit: false });
         }
     });
     return () => unsubscribe();
@@ -582,27 +582,29 @@ export default function GamePage() {
             </div>
           </DialogContent>
         </Dialog>
-        <AlertDialog>
-            <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Exit Game
-                </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure you want to exit?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Make sure you have saved your secret code before you leave. You will need it to log back in.
-                        <div className="bg-muted p-3 rounded-lg font-mono text-center my-4">{team.secretCode}</div>
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Stay</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleExitGame}>Exit Game</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        {gameSettings?.allowExit && (
+          <AlertDialog>
+              <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Exit Game
+                  </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                  <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure you want to exit?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                          Make sure you have saved your secret code before you leave. You will need it to log back in.
+                          <div className="bg-muted p-3 rounded-lg font-mono text-center my-4">{team.secretCode}</div>
+                      </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                      <AlertDialogCancel>Stay</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleExitGame}>Exit Game</AlertDialogAction>
+                  </AlertDialogFooter>
+              </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
     </div>
   );
@@ -690,9 +692,11 @@ export default function GamePage() {
               <Button asChild className="w-full" size="lg">
                 <Link href="/scoreboard">View Scoreboard</Link>
               </Button>
-              <Button variant="ghost" onClick={handleExitGame}>
-                Exit Game
-              </Button>
+              {gameSettings?.allowExit && (
+                <Button variant="ghost" onClick={handleExitGame}>
+                  Exit Game
+                </Button>
+              )}
             </CardFooter>
           </Card>
         </div>
@@ -739,9 +743,11 @@ export default function GamePage() {
               <Button asChild className="w-full" size="lg">
                 <Link href="/scoreboard">View Scoreboard</Link>
               </Button>
-               <Button variant="ghost" onClick={handleExitGame}>
-                 Exit Game
-               </Button>
+               {gameSettings?.allowExit && (
+                <Button variant="ghost" onClick={handleExitGame}>
+                  Exit Game
+                </Button>
+               )}
             </CardFooter>
           </Card>
         </div>
