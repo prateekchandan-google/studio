@@ -141,7 +141,7 @@ export default function PuzzleManagementPage() {
         puzzle: editingPuzzle.puzzle,
         hint: editingPuzzle.hint,
         answer: editingPuzzle.answer,
-        pathId: editingPuzzle.pathId ? editingPuzzle.pathId.toString() : null,
+        pathId: editingPuzzle.pathId ? String(editingPuzzle.pathId) : null,
       });
     }
   }, [editingPuzzle, form]);
@@ -366,9 +366,9 @@ export default function PuzzleManagementPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Assign to Path</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value ? field.value.toString() : ''}>
+                      <Select onValueChange={field.onChange} value={field.value ?? ''}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select a path" /></SelectTrigger></FormControl>
-                        <SelectContent>{[1, 2, 3, 4, 5].map(i => (<SelectItem key={i} value={i.toString()}>{`Path ${i}`}</SelectItem>))}</SelectContent>
+                        <SelectContent>{[1, 2, 3, 4, 5].map(i => (<SelectItem key={i} value={String(i)}>{`Path ${i}`}</SelectItem>))}</SelectContent>
                       </Select>
                     </FormItem>)} />
               </CardContent>
