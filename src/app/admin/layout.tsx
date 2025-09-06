@@ -71,7 +71,7 @@ export default function AdminLayout({
         isCollapsed ? "w-20" : "w-64"
         )}>
         <div className={cn("mb-8 flex items-center", isCollapsed ? 'justify-center' : 'justify-between')}>
-           <div className={cn("transition-opacity duration-200", isCollapsed ? "opacity-0 w-0" : "opacity-100")}>
+           <div className={cn("transition-all duration-200 overflow-hidden", isCollapsed ? "opacity-0 w-0" : "opacity-100 w-auto")}>
             <h2 className="text-2xl font.headline font-bold">Admin Panel</h2>
             <p className="text-sm text-muted-foreground">Treasure Hunt Control</p>
           </div>
