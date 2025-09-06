@@ -75,6 +75,7 @@ export default function StartGamePage() {
         } else {
           // Team was deleted, clear local storage
           localStorage.removeItem('pathfinder-active-teamId');
+          localStorage.removeItem(`pathfinder-player-${activeTeamId}`);
         }
       }
       setIsCheckingSession(false);
