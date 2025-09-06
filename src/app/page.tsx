@@ -59,7 +59,15 @@ export default function StartGamePage() {
     const checkActiveSession = async () => {
       const activeTeamId = localStorage.getItem('pathfinder-active-teamId');
       if (activeTeamId) {
-        // Verify the team still exists before showing member selection
+        const activePlayer = localStorage.getItem(`pathfinder-player-${activeTeamId}`);
+        // If we have a player and a team, the session is fully active, go to game.
+        if (activePlayer) {
+          router.push(`/game/${activeTeamId}`);
+          return; // Stop execution here to prevent flicker
+        }
+
+        // If we only have a team ID, it means they need to select a player.
+        // Verify the team still exists before showing member selection.
         const teamDocRef = doc(db, "teams", activeTeamId);
         const teamDoc = await getDoc(teamDocRef);
         if (teamDoc.exists()) {
@@ -67,7 +75,6 @@ export default function StartGamePage() {
         } else {
           // Team was deleted, clear local storage
           localStorage.removeItem('pathfinder-active-teamId');
-          localStorage.removeItem(`pathfinder-player-${activeTeamId}`);
         }
       }
       setIsCheckingSession(false);
@@ -293,4 +300,3 @@ export default function StartGamePage() {
     </div>
   );
 }
-
