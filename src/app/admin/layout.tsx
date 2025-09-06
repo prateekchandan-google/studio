@@ -70,7 +70,7 @@ export default function AdminLayout({
         "flex-shrink-0 border-r bg-card p-4 flex flex-col transition-all duration-300 ease-in-out",
         isCollapsed ? "w-20" : "w-64"
         )}>
-        <div className="mb-8 flex items-center justify-between">
+        <div className={cn("mb-8 flex items-center", isCollapsed ? 'justify-center' : 'justify-between')}>
            <div className={cn("transition-opacity duration-200", isCollapsed ? "opacity-0 w-0" : "opacity-100")}>
             <h2 className="text-2xl font.headline font-bold">Admin Panel</h2>
             <p className="text-sm text-muted-foreground">Treasure Hunt Control</p>
@@ -119,8 +119,8 @@ export default function AdminLayout({
                 <Tooltip>
                     <TooltipTrigger asChild>
                          <Button variant="outline" asChild className="w-full">
-                             <Link href="/" className={cn(isCollapsed && 'justify-center')}>
-                                <ArrowLeft className={cn(!isCollapsed && "mr-2 h-4 w-4")} />
+                             <Link href="/" className={cn('flex', isCollapsed && 'justify-center')}>
+                                <ArrowLeft className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
                                 <span className={cn(isCollapsed && "hidden")}>Back to Site</span>
                             </Link>
                         </Button>
@@ -133,8 +133,8 @@ export default function AdminLayout({
                 </Tooltip>
                  <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="outline" className="w-full" onClick={handleExitAdmin}>
-                            <LogOut className={cn(!isCollapsed && "mr-2 h-4 w-4")} />
+                        <Button variant="outline" className={cn('w-full flex', isCollapsed && 'justify-center')} onClick={handleExitAdmin}>
+                            <LogOut className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
                             <span className={cn(isCollapsed && "hidden")}>Exit Admin</span>
                         </Button>
                     </TooltipTrigger>
