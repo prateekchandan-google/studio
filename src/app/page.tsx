@@ -59,17 +59,11 @@ export default function StartGamePage() {
     const checkActiveSession = async () => {
       const activeTeamId = localStorage.getItem('pathfinder-active-teamId');
       if (activeTeamId) {
-        // Verify the team still exists before redirecting
+        // Verify the team still exists before showing member selection
         const teamDocRef = doc(db, "teams", activeTeamId);
         const teamDoc = await getDoc(teamDocRef);
         if (teamDoc.exists()) {
-           const activePlayer = localStorage.getItem(`pathfinder-player-${activeTeamId}`);
-           // If we know the player, we can redirect. Otherwise, we need to ask.
-           if (activePlayer) {
-                router.push(`/game/${activeTeamId}`);
-           } else {
-                setTeam({ id: teamDoc.id, ...teamDoc.data() } as Team);
-           }
+           setTeam({ id: teamDoc.id, ...teamDoc.data() } as Team);
         } else {
           // Team was deleted, clear local storage
           localStorage.removeItem('pathfinder-active-teamId');
