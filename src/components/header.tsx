@@ -127,13 +127,6 @@ export function Header() {
           </Sheet>
         </div>
         <div className="hidden md:flex flex-1 items-center justify-end gap-2">
-          {isAdmin && (
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin">
-                <Shield className="w-4 h-4 mr-2" /> Admin Panel
-              </Link>
-            </Button>
-          )}
           <ThemeToggle />
         </div>
       </div>
