@@ -222,14 +222,14 @@ export default function StartGamePage() {
       <Card className="w-full max-w-md z-10">
         <CardHeader className="text-center">
             <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
-                {gameSettings.isStarted ? <Key className="w-8 h-8 text-primary" /> : <Timer className="w-8 h-8 text-primary" />}
+                {gameSettings?.isStarted ? <Key className="w-8 h-8 text-primary" /> : <Timer className="w-8 h-8 text-primary" />}
             </div>
-          <CardTitle className="font-headline text-2xl">{gameSettings.isStarted ? 'Start Game' : 'Game Not Started'}</CardTitle>
+          <CardTitle className="font-headline text-2xl">{gameSettings?.isStarted ? 'Enter the Challenge' : 'Game Not Started'}</CardTitle>
           <CardDescription>
-            {gameSettings.isStarted ? "Enter your team's secret code to begin." : "The game has not started yet, wait till 10th September Wednesday 2:00 PM"}
+            {gameSettings?.isStarted ? "Enter your team's secret code to begin." : "The game has not started yet, wait till 10th September Wednesday 2:00 PM"}
           </CardDescription>
         </CardHeader>
-        {gameSettings.isStarted ? (
+        {gameSettings?.isStarted ? (
           <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => handleLogin(data.secretCode))}>
               <CardContent className="space-y-4">
@@ -299,3 +299,4 @@ export default function StartGamePage() {
     </div>
   );
 }
+

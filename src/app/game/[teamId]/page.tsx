@@ -639,11 +639,6 @@ export default function GamePage() {
                 The game has not started yet, wait till 10th September Wednesday 2:00 PM. If the admin has started the game, please wait a moment.
               </CardDescription>
             </CardHeader>
-            <CardFooter>
-              <Button onClick={handleExitGame} className="w-full">
-                <LogOut className="mr-2 h-4 w-4" /> Go to Homepage
-              </Button>
-            </CardFooter>
           </Card>
         </div>
       </div>
@@ -925,3 +920,4 @@ export default function GamePage() {
     </div>
   );
 }
+
