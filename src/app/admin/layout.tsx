@@ -112,21 +112,21 @@ export default function AdminLayout({
           </TooltipProvider>
         </nav>
         <div className="mt-auto">
-             <Button 
-                variant="outline" 
-                size="icon" 
-                className="absolute top-6 right-[-1.25rem] z-10"
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                >
-                <PanelLeft className="h-5 w-5" />
-            </Button>
             <Button variant="outline" className="w-full" onClick={handleExitAdmin}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span className={cn(isCollapsed && "hidden")}>Exit Admin</span>
             </Button>
         </div>
       </aside>
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 p-8 overflow-y-auto relative">
+        <Button 
+            variant="outline" 
+            size="icon" 
+            className="absolute top-6 left-[-1.25rem] z-10 bg-background"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+            <PanelLeft className="h-5 w-5" />
+        </Button>
         {children}
       </main>
     </div>
