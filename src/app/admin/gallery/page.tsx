@@ -2,23 +2,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Submission } from '@/lib/types';
 import Image from 'next/image';
 import { Loader, ImageOff } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 
 export default function GalleryPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Corrected query: Filter by image existence, then order by timestamp and limit the results.
     const submissionsQuery = query(
       collection(db, 'submissions'),
       where('imageSubmissionDataUri', '!=', null),
-      orderBy('imageSubmissionDataUri'),
-      orderBy('timestamp', 'desc')
+      orderBy('timestamp', 'desc'),
+      limit(100)
     );
 
     const unsubscribe = onSnapshot(
