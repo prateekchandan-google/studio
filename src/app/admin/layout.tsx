@@ -72,15 +72,18 @@ export default function AdminLayout({
         )}>
         <div className="mb-8 flex items-center justify-between">
            <div className={cn("transition-opacity duration-200", isCollapsed ? "opacity-0 w-0" : "opacity-100")}>
-            <Button variant="outline" asChild className="mb-4">
-                 <Link href="/">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Main Site
-                </Link>
-            </Button>
             <h2 className="text-2xl font.headline font-bold">Admin Panel</h2>
             <p className="text-sm text-muted-foreground">Treasure Hunt Control</p>
           </div>
+            <Button 
+                variant="ghost" 
+                size="icon"
+                className="flex-shrink-0"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+                {isCollapsed ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
+                <span className="sr-only">Toggle Sidebar</span>
+            </Button>
         </div>
         <nav className="flex flex-col gap-2 flex-grow">
          <TooltipProvider delayDuration={0}>
@@ -112,18 +115,36 @@ export default function AdminLayout({
           </TooltipProvider>
         </nav>
         <div className="mt-auto space-y-2">
-            <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => setIsCollapsed(!isCollapsed)}
-            >
-                {isCollapsed ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
-                <span className="sr-only">Toggle Sidebar</span>
-            </Button>
-            <Button variant="outline" className="w-full" onClick={handleExitAdmin}>
-                <LogOut className={cn(!isCollapsed && "mr-2 h-4 w-4")} />
-                <span className={cn(isCollapsed && "hidden")}>Exit Admin</span>
-            </Button>
+            <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                         <Button variant="outline" asChild className="w-full">
+                             <Link href="/" className={cn(isCollapsed && 'justify-center')}>
+                                <ArrowLeft className={cn(!isCollapsed && "mr-2 h-4 w-4")} />
+                                <span className={cn(isCollapsed && "hidden")}>Back to Site</span>
+                            </Link>
+                        </Button>
+                    </TooltipTrigger>
+                    {isCollapsed && (
+                        <TooltipContent side="right" align="center">
+                            Back to Main Site
+                        </TooltipContent>
+                    )}
+                </Tooltip>
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="outline" className="w-full" onClick={handleExitAdmin}>
+                            <LogOut className={cn(!isCollapsed && "mr-2 h-4 w-4")} />
+                            <span className={cn(isCollapsed && "hidden")}>Exit Admin</span>
+                        </Button>
+                    </TooltipTrigger>
+                    {isCollapsed && (
+                        <TooltipContent side="right" align="center">
+                            Exit Admin
+                        </TooltipContent>
+                    )}
+                </Tooltip>
+            </TooltipProvider>
         </div>
       </aside>
       <main className="flex-1 p-8 overflow-y-auto">
