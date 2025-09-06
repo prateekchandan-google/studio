@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Award, Camera, Clock, HelpCircle, Lightbulb, Trophy, Target } from "lucide-react";
+import { Award, Camera, Clock, HelpCircle, Lightbulb, Trophy, Target, MapPin } from "lucide-react";
 
 const rules = [
     {
@@ -10,25 +10,30 @@ const rules = [
         title: "Objective",
         description: "Your team's goal is to solve a series of puzzles and riddles as quickly as possible. The team with the highest score at the end of the game wins!"
     },
+     {
+        icon: MapPin,
+        title: "Location",
+        description: "The entire treasure hunt is confined to the <strong>Ananta building</strong>. All clues, answers, and required actions will be found within the building's premises."
+    },
     {
         icon: Clock,
         title: "Game Duration",
-        description: "The entire treasure hunt is timed. Each team has exactly 60 minutes to solve as many puzzles as they can. The main timer starts when the first team member logs in after the game is live."
+        description: "The entire treasure hunt is timed. Each team has exactly <strong>60 minutes</strong> to solve as many puzzles as they can. The main timer starts when the first team member logs in after the game is live."
     },
     {
         icon: Award,
         title: "Scoring System",
-        description: "Points are awarded for correct solutions and deducted for using hints. A correct puzzle solution earns your team 20 points."
+        description: "Points are awarded for correct solutions and deducted for using hints. A correct puzzle solution earns your team <strong>20 points</strong>."
     },
     {
         icon: Lightbulb,
         title: "Hints & Skips",
-        description: "Hints are available to help you out. A standard hint is available after 5 minutes for a 5-point penalty. An immediate hint can be used anytime for a 10-point penalty. You can skip a puzzle after 10 minutes, but you will receive no points for it."
+        description: "Hints are available to help you out. A standard hint is available after 5 minutes for a <strong>5-point penalty</strong>. An immediate hint can be used anytime for a <strong>10-point penalty</strong>. You can skip a puzzle after 10 minutes, but you will receive no points for it."
     },
     {
         icon: Camera,
         title: "Mandatory Selfie/Photo",
-        description: "Every puzzle solution MUST be accompanied by a supporting photograph. This could be a selfie of your team at a location or a photo of the object that is the answer to the riddle. No photo, no points!"
+        description: "Every puzzle solution <strong>MUST be accompanied by a supporting photograph</strong>. This could be a selfie of your team at a location or a photo of the object that is the answer to the riddle. No photo, no points!"
     },
     {
         icon: Trophy,
@@ -41,7 +46,7 @@ export default function RulesPage() {
     return (
         <div className="container mx-auto py-8 px-4">
             <header className="text-center mb-12">
-                <h1 className="text-4xl font-headline font-bold tracking-tight lg:text-5xl">
+                <h1 className="text-4xl font-headline font-bold tracking-tight lg:text-5xl text-foreground">
                     Game Rules & Guidelines
                 </h1>
                 <p className="mt-2 text-lg text-muted-foreground">
@@ -59,7 +64,7 @@ export default function RulesPage() {
                             <CardTitle className="font-headline text-2xl">{rule.title}</CardTitle>
                         </CardHeader>
                         <CardContent className="flex-grow">
-                            <p className="text-muted-foreground">{rule.description}</p>
+                            <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: rule.description }} />
                         </CardContent>
                     </Card>
                 ))}
