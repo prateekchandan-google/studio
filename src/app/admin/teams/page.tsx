@@ -64,36 +64,43 @@ export default function TeamManagementPage() {
   }, [editingTeam, form]);
 
   useEffect(() => {
+    const fetchInitialData = async () => {
+        try {
+            const teamsQuery = query(collection(db, 'teams'), orderBy('name', 'asc'));
+            const puzzlesQuery = query(collection(db, 'puzzles'));
+            
+            const [teamsSnapshot, puzzlesSnapshot] = await Promise.all([
+                getDocs(teamsQuery),
+                getDocs(puzzlesQuery)
+            ]);
+
+            const teamsData: Team[] = teamsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+            const puzzlesData: Puzzle[] = puzzlesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
+
+            setTeams(teamsData);
+            setPuzzles(puzzlesData);
+        } catch (error) {
+            console.error('Failed to fetch initial data', error);
+            toast({ title: 'Error', description: 'Could not fetch initial data.', variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    fetchInitialData();
+
     const teamsQuery = query(collection(db, 'teams'), orderBy('name', 'asc'));
     const puzzlesQuery = query(collection(db, 'puzzles'));
 
-    const unsubscribeTeams = onSnapshot(
-      teamsQuery,
-      (querySnapshot) => {
+    const unsubscribeTeams = onSnapshot(teamsQuery, (querySnapshot) => {
         const teamsData: Team[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
         setTeams(teamsData);
-        if (puzzles.length > 0) setIsLoading(false);
-      },
-      (error) => {
-        console.error('Failed to fetch teams from Firestore', error);
-        toast({title: 'Error', description: 'Could not fetch teams.', variant: 'destructive'})
-        setIsLoading(false);
-      }
-    );
+    });
 
-    const unsubscribePuzzles = onSnapshot(
-        puzzlesQuery,
-        (querySnapshot) => {
-            const puzzlesData: Puzzle[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
-            setPuzzles(puzzlesData);
-            if (teams.length > 0 || querySnapshot.empty) setIsLoading(false);
-        },
-        (error) => {
-            console.error('Failed to fetch puzzles from Firestore', error);
-            toast({title: 'Error', description: 'Could not fetch puzzles.', variant: 'destructive'})
-            setIsLoading(false);
-        }
-    );
+    const unsubscribePuzzles = onSnapshot(puzzlesQuery, (querySnapshot) => {
+        const puzzlesData: Puzzle[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
+        setPuzzles(puzzlesData);
+    });
 
     return () => {
       unsubscribeTeams();
@@ -392,4 +399,5 @@ export default function TeamManagementPage() {
       </Card>
     </div>
   );
-}
+
+    
