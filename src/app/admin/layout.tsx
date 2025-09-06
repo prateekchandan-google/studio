@@ -111,22 +111,22 @@ export default function AdminLayout({
           })}
           </TooltipProvider>
         </nav>
-        <div className="mt-auto">
+        <div className="mt-auto space-y-2">
+            <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+                {isCollapsed ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
+                <span className="sr-only">Toggle Sidebar</span>
+            </Button>
             <Button variant="outline" className="w-full" onClick={handleExitAdmin}>
                 <LogOut className={cn(!isCollapsed && "mr-2 h-4 w-4")} />
                 <span className={cn(isCollapsed && "hidden")}>Exit Admin</span>
             </Button>
         </div>
       </aside>
-      <main className="flex-1 p-8 overflow-y-auto relative">
-        <Button 
-            variant="outline" 
-            size="icon" 
-            className="absolute top-6 left-[-1.25rem] z-10 bg-background rounded-full border-2 h-10 w-10"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            >
-            {isCollapsed ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
-        </Button>
+      <main className="flex-1 p-8 overflow-y-auto">
         {children}
       </main>
     </div>
