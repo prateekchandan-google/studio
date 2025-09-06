@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Puzzle, CheckSquare, LogOut, GalleryHorizontal, ArrowLeft } from 'lucide-react';
+import { Home, Users, Puzzle, CheckSquare, LogOut, GalleryHorizontal, ArrowLeft, PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
@@ -24,6 +24,8 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const [isVerified, setIsVerified] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -49,8 +51,7 @@ export default function AdminLayout({
     );
   }
   
-  // Let the root layout handle the gallery now
-  if (pathname === '/admin/gallery') {
+  if (pathname.startsWith('/admin/gallery')) {
     return <>{children}</>;
   }
 
@@ -65,38 +66,46 @@ export default function AdminLayout({
 
   return (
     <div className="flex h-screen bg-background">
-      <aside className="w-64 flex-shrink-0 border-r bg-card p-4 flex flex-col">
-        <div className="mb-8">
+      <aside className={cn(
+        "flex-shrink-0 border-r bg-card p-4 flex flex-col transition-all duration-300 ease-in-out",
+        isCollapsed ? "w-20" : "w-64"
+        )}>
+        <div className="mb-8 flex items-center justify-between">
+           <div className={cn("transition-opacity duration-200", isCollapsed ? "opacity-0 w-0" : "opacity-100")}>
             <Button variant="outline" asChild className="mb-4">
                  <Link href="/">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Main Site
                 </Link>
             </Button>
-          <h2 className="text-2xl font.headline font-bold">Admin Panel</h2>
-          <p className="text-sm text-muted-foreground">Treasure Hunt Control</p>
+            <h2 className="text-2xl font.headline font-bold">Admin Panel</h2>
+            <p className="text-sm text-muted-foreground">Treasure Hunt Control</p>
+          </div>
         </div>
         <nav className="flex flex-col gap-2 flex-grow">
-         <TooltipProvider>
+         <TooltipProvider delayDuration={0}>
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             return (
-              <Tooltip key={link.href} delayDuration={0}>
+              <Tooltip key={link.href}>
                 <TooltipTrigger asChild>
                   <Link
                     href={link.href}
                     className={cn(
                       'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
-                      isActive && 'bg-primary/10 text-primary font-semibold'
+                      isActive && 'bg-primary/10 text-primary font-semibold',
+                      isCollapsed && 'justify-center'
                     )}
                   >
-                    <link.icon className="h-4 w-4" />
-                    <span className="truncate">{link.label}</span>
+                    <link.icon className="h-5 w-5" />
+                    <span className={cn("truncate", isCollapsed && "hidden")}>{link.label}</span>
                   </Link>
                 </TooltipTrigger>
-                 <TooltipContent side="right" align="center">
-                    {link.label}
-                 </TooltipContent>
+                {isCollapsed && (
+                     <TooltipContent side="right" align="center">
+                        {link.label}
+                     </TooltipContent>
+                )}
               </Tooltip>
             );
           })}
@@ -105,11 +114,23 @@ export default function AdminLayout({
         <div className="mt-auto">
             <Button variant="outline" className="w-full" onClick={handleExitAdmin}>
                 <LogOut className="mr-2 h-4 w-4" />
-                Exit Admin Mode
+                <span className={cn(isCollapsed && "hidden")}>Exit Admin</span>
             </Button>
         </div>
       </aside>
-      <main className="flex-1 p-8 overflow-y-auto">{children}</main>
+      <main className="flex-1 p-8 overflow-y-auto relative">
+         <Button 
+            variant="outline" 
+            size="icon" 
+            className="absolute top-6 left-6 z-10"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+            <PanelLeft className="h-5 w-5" />
+        </Button>
+        <div className="pl-8">
+            {children}
+        </div>
+      </main>
     </div>
   );
 }
