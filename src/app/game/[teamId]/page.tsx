@@ -41,6 +41,7 @@ export default function GamePage() {
   const [loginUrl, setLoginUrl] = useState('');
   const [hasCopied, setHasCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [teamExists, setTeamExists] = useState<boolean | null>(null);
   const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
   const [playerName, setPlayerName] = useState<string | null>(null);
   const [onlinePlayers, setOnlinePlayers] = useState<string[]>([]);
@@ -123,19 +124,19 @@ export default function GamePage() {
     const teamDocRef = doc(db, 'teams', teamId);
   
     const unsubscribeTeam = onSnapshot(teamDocRef, (teamDoc) => {
+      // Don't assume the team is gone until metadata says the data is from the server.
+      if (teamDoc.metadata.fromCache && teamDoc.metadata.hasPendingWrites) {
+          return;
+      }
+
       if (!teamDoc.exists()) {
         setTeam(undefined);
-        toast({
-          title: "Team Not Found",
-          description: "Your team may have been removed. Logging out.",
-          variant: "destructive",
-          duration: 5000,
-        });
-        handleExitGame();
+        setTeamExists(false);
         setIsLoading(false);
         return;
       }
   
+      setTeamExists(true);
       const teamData = { id: teamDoc.id, ...teamDoc.data() } as Team;
 
        // Check for rejection/approval toasts
@@ -496,7 +497,7 @@ export default function GamePage() {
     }
   };
   
-  if (isLoading) {
+  if (isLoading || teamExists === null) {
     return (
         <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
             <Loader className="w-12 h-12 animate-spin text-primary" />
@@ -505,7 +506,7 @@ export default function GamePage() {
   }
 
 
-  if (!team) {
+  if (!teamExists || !team) {
     return (
         <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
           <Card className="w-full max-w-md text-center">
@@ -515,11 +516,14 @@ export default function GamePage() {
                 </div>
               <CardTitle className="font-headline text-2xl">Team Not Found</CardTitle>
               <CardDescription>
-                We couldn't find a team with that ID. Please check your URL or register a new team.
+                We couldn't find a team with that ID. Your team may have been removed. Please check your URL or register a new team.
               </CardDescription>
             </CardHeader>
             <CardFooter className="flex-col gap-4">
-              <Button asChild className="w-full">
+              <Button asChild className="w-full" onClick={() => {
+                localStorage.removeItem('pathfinder-active-teamId');
+                localStorage.removeItem(`pathfinder-player-${teamId}`);
+              }}>
                 <Link href="/">Try Login Again</Link>
               </Button>
             </CardFooter>
