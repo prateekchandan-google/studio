@@ -48,7 +48,7 @@ export default function AdminLayout({
     );
   }
   
-  if (pathname === '/admin/login') {
+  if (pathname === '/admin/login' || pathname === '/admin/gallery') {
     return <>{children}</>;
   }
 
