@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -15,13 +16,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { PlusCircle, Loader, BookOpen, Pencil, Sparkles, GripVertical, View } from 'lucide-react';
+import { PlusCircle, Loader, BookOpen, Pencil, Sparkles, GripVertical, View, ChevronsUpDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const puzzleSchema = z.object({
   title: z.string().min(3, 'Puzzle title must be at least 3 characters.'),
@@ -53,20 +55,34 @@ const PuzzleCard = ({ puzzle, onOpen, isDetailedView, onEdit }: { puzzle: Puzzle
         </CardHeader>
         {isDetailedView && (
           <CardContent className="space-y-3 pl-10 text-sm">
-             <div>
-                <h4 className="font-semibold text-muted-foreground">Puzzle</h4>
-                <p className="whitespace-pre-wrap">{puzzle.puzzle}</p>
-              </div>
-              {puzzle.hint && (
-                <div>
-                    <h4 className="font-semibold text-muted-foreground">Hint</h4>
-                    <p>{puzzle.hint}</p>
-                </div>
-              )}
-              <div>
-                <h4 className="font-semibold text-muted-foreground">Answer</h4>
-                <p className="font-mono bg-secondary/50 p-1 rounded text-xs">{puzzle.answer}</p>
-              </div>
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                 <Button variant="ghost" size="sm" className="w-full justify-between px-2">
+                    <span className="font-semibold text-muted-foreground">Puzzle</span>
+                    <ChevronsUpDown className="h-4 w-4" />
+                  </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <p className="whitespace-pre-wrap p-2">{puzzle.puzzle}</p>
+              </CollapsibleContent>
+            </Collapsible>
+             {puzzle.hint && (
+                <Collapsible>
+                    <CollapsibleTrigger asChild>
+                         <Button variant="ghost" size="sm" className="w-full justify-between px-2">
+                            <span className="font-semibold text-muted-foreground">Hint</span>
+                            <ChevronsUpDown className="h-4 w-4" />
+                        </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                        <p className="whitespace-pre-wrap p-2">{puzzle.hint}</p>
+                    </CollapsibleContent>
+                </Collapsible>
+            )}
+            <div>
+                <h4 className="font-semibold text-muted-foreground pl-2">Answer</h4>
+                <p className="font-mono bg-secondary/50 p-1 rounded text-xs mt-1">{puzzle.answer}</p>
+            </div>
           </CardContent>
         )}
         {isDetailedView && (
@@ -406,3 +422,5 @@ export default function PuzzleManagementPage() {
     </div>
   );
 }
+
+    
