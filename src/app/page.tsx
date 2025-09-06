@@ -220,10 +220,10 @@ export default function StartGamePage() {
   return (
     <div className="relative min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-4">
        <div 
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/treasure-map-background.jpg')" }}
+        className="absolute inset-0 bg-contain"
+        style={{ backgroundImage: "url('/treasure-map-background.png')" }}
         >
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
       </div>
 
       <Card className="w-full max-w-md z-10">
