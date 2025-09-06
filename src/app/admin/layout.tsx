@@ -51,10 +51,6 @@ export default function AdminLayout({
     );
   }
   
-  if (pathname.startsWith('/admin/gallery')) {
-    return <>{children}</>;
-  }
-
   if (!isVerified) {
     return (
         <div className="flex items-center justify-center min-h-screen">
