@@ -219,13 +219,6 @@ export default function StartGamePage() {
 
   return (
     <div className="relative min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-4">
-       <div 
-        className="absolute inset-0 bg-contain"
-        style={{ backgroundImage: "url('/treasure-map-background.png')" }}
-        >
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
-      </div>
-
       <Card className="w-full max-w-md z-10">
         <CardHeader className="text-center">
             <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
@@ -233,7 +226,7 @@ export default function StartGamePage() {
             </div>
           <CardTitle className="font-headline text-2xl">{gameSettings.isStarted ? 'Start Game' : 'Game Not Started'}</CardTitle>
           <CardDescription>
-            {gameSettings.isStarted ? "Enter your team's secret code to begin." : "The game has not started yet, wait till 11th September Wednesday 2:00 PM"}
+            {gameSettings.isStarted ? "Enter your team's secret code to begin." : "The game has not started yet, wait till 10th September Wednesday 2:00 PM"}
           </CardDescription>
         </CardHeader>
         {gameSettings.isStarted ? (

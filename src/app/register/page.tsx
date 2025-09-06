@@ -186,7 +186,7 @@ export default function RegistrationPage() {
                         </Button>
                     </div>
                      <p className="text-sm text-muted-foreground mt-4">
-                        The game has not started yet. Please visit this page on Sept 11th, 2:00 PM to begin. You can log in with this code.
+                        The game has not started yet. Please visit this page on Sept 10th, 2:00 PM to begin. You can log in with this code.
                     </p>
                 </CardContent>
                 <CardFooter>

@@ -3,6 +3,7 @@ import './globals.css';
 import { Header } from '@/components/header';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
+import { Background } from '@/components/background';
 
 export const metadata: Metadata = {
   title: 'Google TV Treasure hunt 2025 edition',
@@ -31,6 +32,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <Background />
           <Header />
           <main className="flex-1">{children}</main>
           <Toaster />
