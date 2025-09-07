@@ -38,7 +38,7 @@ const puzzleSchema = z.object({
 
 type PuzzleFormValues = z.infer<typeof puzzleSchema>;
 
-const PuzzleCard = ({ puzzle, onOpen, isDetailedView, onEdit, onContextMenu }: { puzzle: Puzzle; onOpen: () => void; isDetailedView: boolean, onEdit: () => void; onContextMenu: (event: React.MouseEvent | React.TouchEvent, puzzle: Puzzle) => void }) => {
+const PuzzleCard = ({ puzzle, index, onOpen, isDetailedView, onEdit, onContextMenu }: { puzzle: Puzzle; index: number; onOpen: () => void; isDetailedView: boolean, onEdit: () => void; onContextMenu: (event: React.MouseEvent | React.TouchEvent, puzzle: Puzzle) => void }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: puzzle.id });
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -80,7 +80,10 @@ const PuzzleCard = ({ puzzle, onOpen, isDetailedView, onEdit, onContextMenu }: {
            <span className="sr-only">Drag to reorder puzzle</span>
         </button>
         <CardHeader className="pl-10">
-          <CardTitle className="text-base">{puzzle.title}</CardTitle>
+          <CardTitle className="text-base flex items-center">
+            {isDetailedView && <span className="text-muted-foreground font-mono text-xs mr-2">{index + 1}.</span>}
+            {puzzle.title}
+            </CardTitle>
         </CardHeader>
         {isDetailedView && (
           <CardContent className="space-y-3 pl-10 text-sm">
@@ -135,8 +138,8 @@ const PuzzlePathColumn = ({ id, title, puzzles = [], onOpen, isDetailedView, onE
       </div>
       <SortableContext items={puzzles.map(p => p.id)} strategy={rectSortingStrategy}>
         <div className="min-h-[200px] space-y-2">
-          {puzzles.map(puzzle => (
-            <PuzzleCard key={puzzle.id} puzzle={puzzle} onOpen={() => onOpen(puzzle)} isDetailedView={isDetailedView} onEdit={() => onEdit(puzzle)} onContextMenu={onContextMenu} />
+          {puzzles.map((puzzle, index) => (
+            <PuzzleCard key={puzzle.id} puzzle={puzzle} index={index} onOpen={() => onOpen(puzzle)} isDetailedView={isDetailedView} onEdit={() => onEdit(puzzle)} onContextMenu={onContextMenu} />
           ))}
         </div>
       </SortableContext>
