@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A puzzle title generation AI flow.
@@ -34,7 +35,7 @@ const prompt = ai.definePrompt({
   name: 'generatePuzzleTitlePrompt',
   input: {schema: GeneratePuzzleTitleInputSchema},
   output: {schema: GeneratePuzzleTitleOutputSchema},
-  prompt: `You are a creative assistant. Generate a short, two-word, gibberish but readable title based on the following puzzle. The title should have no real meaning but should sound like it could be a name. Do not use any words from the puzzle itself.
+  prompt: `You are a creative assistant. Generate a short, two-word, gibberish but readable title based on the following puzzle. The title should have no real meaning but should sound like it could be a name. Do not use any words from the puzzle itself. Do not include "The" at the beginning.
 
 Puzzle:
 {{puzzle}}`,
@@ -48,6 +49,14 @@ const generatePuzzleTitleFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
+    if (output) {
+      // Capitalize the first letter of each word in the title
+      const capitalizedTitle = output.title
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      return { title: `The ${capitalizedTitle}` };
+    }
     return output!;
   }
 );
