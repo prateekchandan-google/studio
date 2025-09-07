@@ -290,8 +290,8 @@ export default function GamePage() {
             const elapsed = Math.floor((now - gameStartTime) / 1000);
             const newOverallTimeLeft = OVERALL_GAME_DURATION - elapsed;
             setOverallTimeLeft(newOverallTimeLeft > 0 ? newOverallTimeLeft : 0);
-        } else if (overallTimeLeft === null) {
-            setOverallTimeLeft(OVERALL_GAME_DURATION);
+        } else {
+            setOverallTimeLeft(null);
         }
         return;
     }
@@ -531,7 +531,7 @@ export default function GamePage() {
     }
   };
   
-  if (isLoading || teamExists === null) {
+  if (isLoading || teamExists === null || gameSettings === null) {
     return (
         <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[calc(100vh-10rem)]">
             <Loader className="w-12 h-12 animate-spin text-primary" />
@@ -647,7 +647,7 @@ export default function GamePage() {
     </div>
   );
   
-  if (!gameSettings?.isStarted || !team.gameStartTime) {
+  if (!gameSettings.isStarted || !team.gameStartTime) {
     return (
       <div className="container mx-auto py-8 px-4">
         {renderHeader()}
@@ -978,3 +978,6 @@ export default function GamePage() {
 
     
 
+
+
+    
