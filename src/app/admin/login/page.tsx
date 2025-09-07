@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Lock } from 'lucide-react';
 
-const SECRET_CODE = process.env.NEXT_PUBLIC_ADMIN_SECRET_CODE || 'tv-blr-treasure-ka-god';
+const SECRET_CODE = process.env.NEXT_PUBLIC_ADMIN_SECRET_CODE || 'admin';
 
 export default function AdminLoginPage() {
   const router = useRouter();
