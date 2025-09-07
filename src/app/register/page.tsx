@@ -38,6 +38,7 @@ export default function RegistrationPage() {
   const [isGeneratingName, setIsGeneratingName] = useState(false);
   const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
   const [newlyRegisteredTeam, setNewlyRegisteredTeam] = useState<Team | null>(null);
+  const [isContinuing, setIsContinuing] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -153,6 +154,7 @@ export default function RegistrationPage() {
 
   const proceedToGame = () => {
     if (newlyRegisteredTeam) {
+      setIsContinuing(true);
       // The user who registered is the first player.
       localStorage.setItem('pathfinder-active-teamId', newlyRegisteredTeam.id);
       localStorage.setItem(`pathfinder-player-${newlyRegisteredTeam.id}`, newlyRegisteredTeam.members[0]);
@@ -195,8 +197,17 @@ export default function RegistrationPage() {
                     </p>
                 </CardContent>
                 <CardFooter>
-                     <Button className="w-full" onClick={proceedToGame}>
-                        Continue <ArrowRight className="ml-2 h-4 w-4" />
+                     <Button className="w-full" onClick={proceedToGame} disabled={isContinuing}>
+                        {isContinuing ? (
+                            <>
+                                <Loader className="mr-2 h-4 w-4 animate-spin" />
+                                Proceeding...
+                            </>
+                        ) : (
+                            <>
+                                Continue <ArrowRight className="ml-2 h-4 w-4" />
+                            </>
+                        )}
                     </Button>
                 </CardFooter>
             </Card>
