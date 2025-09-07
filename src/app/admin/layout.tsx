@@ -24,7 +24,7 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const [isVerified, setIsVerified] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
 
   useEffect(() => {
