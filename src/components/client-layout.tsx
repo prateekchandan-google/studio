@@ -1,7 +1,7 @@
 
 'use client';
 
-import { NavigationProvider, useNavigation } from '@/hooks/use-navigation';
+import { useNavigation } from '@/hooks/use-navigation';
 import { Loader } from 'lucide-react';
 
 function NavigationLoader() {
@@ -19,9 +19,9 @@ function NavigationLoader() {
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
     return (
-        <NavigationProvider>
+        <>
            <NavigationLoader />
            {children}
-        </NavigationProvider>
+        </>
     )
 }

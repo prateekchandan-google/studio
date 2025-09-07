@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { useNavigation } from '@/hooks/use-navigation';
 
 const navLinks = [
   { href: '/admin', label: 'Home', icon: Home },
@@ -25,6 +26,7 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [isVerified, setIsVerified] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const { handleLinkClick } = useNavigation();
 
 
   useEffect(() => {
@@ -90,6 +92,7 @@ export default function AdminLayout({
                 <TooltipTrigger asChild>
                   <Link
                     href={link.href}
+                    onClick={() => handleLinkClick(link.href)}
                     className={cn(
                       'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
                       isActive && 'bg-primary/10 text-primary font-semibold',
@@ -115,7 +118,7 @@ export default function AdminLayout({
                 <Tooltip>
                     <TooltipTrigger asChild>
                          <Button variant="outline" asChild className="w-full">
-                             <Link href="/" className={cn('flex', isCollapsed && 'justify-center')}>
+                             <Link href="/" onClick={() => handleLinkClick('/')} className={cn('flex', isCollapsed && 'justify-center')}>
                                 <ArrowLeft className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
                                 <span className={cn(isCollapsed && "hidden")}>Back to Site</span>
                             </Link>

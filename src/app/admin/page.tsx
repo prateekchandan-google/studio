@@ -11,6 +11,7 @@ import { doc, onSnapshot, updateDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import type { GameSettings } from "@/lib/types";
+import { useNavigation } from "@/hooks/use-navigation";
 
 const adminSections = [
     {
@@ -36,6 +37,7 @@ const adminSections = [
 export default function AdminHomePage() {
     const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
     const { toast } = useToast();
+    const { handleLinkClick } = useNavigation();
 
     useEffect(() => {
         const settingsRef = doc(db, 'settings', 'game');
@@ -167,7 +169,7 @@ export default function AdminHomePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {adminSections.map(section => (
-                    <Link href={section.href} key={section.href}>
+                    <Link href={section.href} key={section.href} onClick={() => handleLinkClick(section.href)}>
                          <Card className="hover:border-primary hover:shadow-lg transition-all h-full">
                             <CardHeader className="flex flex-row items-center gap-4">
                                 <div className="p-3 bg-primary/10 rounded-lg">

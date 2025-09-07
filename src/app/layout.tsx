@@ -1,8 +1,10 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AdminLayoutContent } from '@/components/admin-layout-content';
+import { NavigationProvider } from '@/hooks/use-navigation';
 
 
 export const metadata: Metadata = {
@@ -32,9 +34,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <NavigationProvider>
             <AdminLayoutContent>
                 {children}
             </AdminLayoutContent>
+          </NavigationProvider>
           <Toaster />
         </ThemeProvider>
       </body>
