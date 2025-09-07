@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AdminLayoutContent } from '@/components/admin-layout-content';
 import { NavigationProvider } from '@/hooks/use-navigation';
+import { ClientLayout } from '@/components/client-layout';
 
 
 export const metadata: Metadata = {
@@ -35,9 +36,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <NavigationProvider>
-            <AdminLayoutContent>
-                {children}
-            </AdminLayoutContent>
+            <ClientLayout>
+              <AdminLayoutContent>
+                  {children}
+              </AdminLayoutContent>
+            </ClientLayout>
           </NavigationProvider>
           <Toaster />
         </ThemeProvider>
