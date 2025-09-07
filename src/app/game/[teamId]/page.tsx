@@ -871,7 +871,7 @@ export default function GamePage() {
                          <div className="flex gap-2 items-stretch">
                             <Dialog open={isCameraDialogOpen} onOpenChange={setIsCameraDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button size="lg" type="button" variant="default" className="flex-1" disabled={isPaused || isSubmitting || !!capturedImage}>
+                                    <Button size="lg" type="button" variant="outline" className="flex-1" disabled={isPaused || isSubmitting || !!capturedImage}>
                                         <Camera className="mr-2 h-5 w-5" /> Take Photo
                                     </Button>
                                 </DialogTrigger>
