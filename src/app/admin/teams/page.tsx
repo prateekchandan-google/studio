@@ -399,5 +399,4 @@ export default function TeamManagementPage() {
       </Card>
     </div>
   );
-
-    
+}
