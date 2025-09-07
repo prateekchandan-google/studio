@@ -26,6 +26,7 @@ const HINT_PENALTY = 5;
 const IMMEDIATE_HINT_PENALTY = 10;
 const SKIP_PENALTY = 0; // No points awarded, but no deduction
 const PUZZLE_REWARD = 20;
+const FIRST_SOLVE_BONUS = 10;
 const OVERALL_GAME_DURATION = 60 * 60; // 60 minutes in seconds
 const HINT_DELAY = 5 * 60; // 5 minutes in seconds
 const SKIP_DELAY = 10 * 60; // 10 minutes in seconds
@@ -54,6 +55,7 @@ export default function GamePage() {
 
   const prevSubmissionIdRef = useRef<string | null | undefined>();
   const prevPuzzleIndexRef = useRef<number | undefined>();
+  const prevScoreRef = useRef<number | undefined>();
   const prevGameStartedRef = useRef<boolean | undefined>();
 
 
@@ -148,14 +150,23 @@ export default function GamePage() {
             })
         }
         if (prevPuzzleIndexRef.current !== undefined && teamData.currentPuzzleIndex > prevPuzzleIndexRef.current) {
-            toast({
-                title: 'Solution Approved!',
-                description: `+${PUZZLE_REWARD} points! On to the next challenge.`,
-            });
+            const scoreIncrease = teamData.score - (prevScoreRef.current ?? teamData.score);
+            if (scoreIncrease > PUZZLE_REWARD) {
+                 toast({
+                    title: 'First Solve Bonus!',
+                    description: `You were the first team to solve that! +${FIRST_SOLVE_BONUS} bonus points!`,
+                });
+            } else {
+                toast({
+                    title: 'Solution Approved!',
+                    description: `+${PUZZLE_REWARD} points! On to the next challenge.`,
+                });
+            }
         }
         
         prevSubmissionIdRef.current = teamData.currentSubmissionId;
         prevPuzzleIndexRef.current = teamData.currentPuzzleIndex;
+        prevScoreRef.current = teamData.score;
 
       setTeam(teamData);
   
@@ -931,3 +942,6 @@ export default function GamePage() {
   );
 }
 
+
+
+    
