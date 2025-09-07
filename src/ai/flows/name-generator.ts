@@ -34,7 +34,12 @@ const prompt = ai.definePrompt({
 Generate a fun, creative, and adventurous team name. The team name must be alliterative with the provided house name.
 
 The team name should be inspired by Indian desserts and food, and it should also have a hint of adventure. For example, if the house name is "Bravehearts", a good team name could be "Biryani Buccaneers" or "Barfi Brigades".
+
+IMPORTANT: Make sure to generate a different, unique name every time this prompt is used.
 `,
+  config: {
+    temperature: 0.9,
+  }
 });
 
 const generateTeamNameFlow = ai.defineFlow(
