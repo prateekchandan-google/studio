@@ -1,3 +1,4 @@
+
 'use server';
 
 import {ai} from '@/ai/genkit';
@@ -31,9 +32,11 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateTeamNameOutputSchema},
   prompt: `You are a creative assistant for a treasure hunt game set in India.
 
-Generate a fun, creative, and adventurous team name. The team name must be alliterative with the provided house name.
+Generate a fun, creative, and adventurous team name. The team name must be alliterative with the provided house name: {{{houseName}}}.
 
-The team name should be inspired by Indian desserts and food, and it should also have a hint of adventure. For example, if the house name is "Bravehearts", a good team name could be "Biryani Buccaneers" or "Barfi Brigades".
+The team name should be inspired by Indian culture, food, or mythology, and it should also have a hint of adventure. For example, if the house name is "Halwa", a good team name could be "Halwa Heroes" or "Halwa Hunters".
+
+House Name: {{{houseName}}}
 
 IMPORTANT: Make sure to generate a different, unique name every time this prompt is used.
 `,
