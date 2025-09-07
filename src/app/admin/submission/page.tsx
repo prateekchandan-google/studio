@@ -26,6 +26,7 @@ type SubmissionWithDetails = SubmissionWithAI & {
 };
 
 const PUZZLE_REWARD = 20;
+const FIRST_SOLVE_BONUS = 10;
 
 export default function AdminDashboardPage() {
   const [submissions, setSubmissions] = useState<SubmissionWithDetails[]>([]);
@@ -88,15 +89,30 @@ export default function AdminDashboardPage() {
   }, [toast]);
 
 
-  const handleDecision = async (submissionId: string, teamId: string, decision: "approved" | "rejected") => {
+  const handleDecision = async (submissionId: string, teamId: string, puzzleId: string, decision: "approved" | "rejected") => {
     const batch = writeBatch(db);
     const submissionRef = doc(db, "submissions", submissionId);
     const teamRef = doc(db, "teams", teamId);
 
+    let bonusPoints = 0;
+    let wasFirstSolve = false;
+
     if (decision === "approved") {
+        const approvedSubmissionsQuery = query(
+            collection(db, 'submissions'),
+            where('puzzleId', '==', puzzleId),
+            where('status', '==', 'approved')
+        );
+        const approvedSubmissionsSnapshot = await getDocs(approvedSubmissionsQuery);
+        
+        if (approvedSubmissionsSnapshot.empty) {
+            bonusPoints = FIRST_SOLVE_BONUS;
+            wasFirstSolve = true;
+        }
+
         batch.update(submissionRef, { status: "approved" });
         batch.update(teamRef, { 
-            score: increment(PUZZLE_REWARD),
+            score: increment(PUZZLE_REWARD + bonusPoints),
             riddlesSolved: increment(1),
             currentPuzzleIndex: increment(1),
             currentSubmissionId: null,
@@ -115,6 +131,12 @@ export default function AdminDashboardPage() {
             title: `Submission ${decision}`,
             description: `The team has been notified.`,
         });
+        if (wasFirstSolve) {
+            toast({
+                title: "First Solve Bonus!",
+                description: `This team gets an extra ${FIRST_SOLVE_BONUS} points for being the first to solve this puzzle.`,
+            });
+        }
     } catch (error) {
         console.error(`Failed to ${decision} submission:`, error);
         toast({ title: 'Error', description: 'Could not process decision.', variant: 'destructive'});
@@ -233,14 +255,14 @@ export default function AdminDashboardPage() {
               <CardFooter className="flex gap-2">
                 <Button
                   className="w-full"
-                  onClick={() => handleDecision(submission.id, submission.teamId, "approved")}
+                  onClick={() => handleDecision(submission.id, submission.teamId, submission.puzzleId, "approved")}
                 >
                   <Check className="w-4 h-4 mr-2" /> Approve
                 </Button>
                 <Button
                   variant="destructive"
                   className="w-full"
-                  onClick={() => handleDecision(submission.id, submission.teamId, "rejected")}
+                  onClick={() => handleDecision(submission.id, submission.teamId, submission.puzzleId, "rejected")}
                 >
                   <X className="w-4 h-4 mr-2" /> Reject
                 </Button>
