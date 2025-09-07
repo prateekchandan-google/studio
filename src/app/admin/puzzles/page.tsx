@@ -6,7 +6,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { collection, onSnapshot, query, orderBy, addDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, addDoc, doc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Puzzle } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { PlusCircle, Loader, BookOpen, Pencil, Sparkles, GripVertical, View, ChevronsUpDown, Eye, Edit } from 'lucide-react';
+import { PlusCircle, Loader, BookOpen, Pencil, Sparkles, GripVertical, View, ChevronsUpDown, Eye, Edit, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverEvent, UniqueIdentifier } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
@@ -25,7 +25,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 
 const puzzleSchema = z.object({
@@ -145,6 +146,7 @@ export default function PuzzleManagementPage() {
   const [contextMenuPuzzle, setContextMenuPuzzle] = useState<Puzzle | null>(null);
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
 
 
@@ -408,6 +410,18 @@ export default function PuzzleManagementPage() {
       setEditingPuzzle(null);
   }
 
+  const handleDelete = async (puzzleId: string) => {
+    try {
+        await deleteDoc(doc(db, "puzzles", puzzleId));
+        toast({ title: "Puzzle Deleted", description: "The puzzle has been permanently removed." });
+    } catch (error) {
+        console.error("Failed to delete puzzle:", error);
+        toast({ title: "Deletion Failed", description: "Could not delete the puzzle. Please try again.", variant: 'destructive' });
+    }
+    setIsDeleteDialogOpen(false);
+    setContextMenuPuzzle(null);
+  };
+
   const activePuzzle = activeId ? puzzles.find(p => p.id === activeId) : null;
 
   return (
@@ -445,8 +459,34 @@ export default function PuzzleManagementPage() {
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
                   </DropdownMenuItem>
+                   <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive" onClick={() => setIsDeleteDialogOpen(true)}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                  </DropdownMenuItem>
               </DropdownMenuContent>
           </DropdownMenu>
+      )}
+
+      {contextMenuPuzzle && (
+          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+              <AlertDialogContent>
+                  <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete the puzzle titled
+                          <strong className="mx-1">"{contextMenuPuzzle.title}"</strong>
+                           and remove it from the game.
+                      </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setContextMenuPuzzle(null)}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDelete(contextMenuPuzzle.id)}>
+                          Yes, delete it
+                      </AlertDialogAction>
+                  </AlertDialogFooter>
+              </AlertDialogContent>
+          </AlertDialog>
       )}
 
 
@@ -530,5 +570,3 @@ export default function PuzzleManagementPage() {
     </div>
   );
 }
-
-    
