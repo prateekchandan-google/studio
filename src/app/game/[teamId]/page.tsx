@@ -49,7 +49,7 @@ export default function GamePage() {
   const [onlinePlayers, setOnlinePlayers] = useState<string[]>([]);
   
   // Timer states
-  const [overallTimeLeft, setOverallTimeLeft] = useState(OVERALL_GAME_DURATION);
+  const [overallTimeLeft, setOverallTimeLeft] = useState<number | null>(null);
   const [hintTimeLeft, setHintTimeLeft] = useState(HINT_DELAY);
   const [skipTimeLeft, setSkipTimeLeft] = useState(SKIP_DELAY);
   const [showLiveStartDialog, setShowLiveStartDialog] = useState(false);
@@ -283,7 +283,18 @@ export default function GamePage() {
 
   useEffect(() => {
     const isPaused = !!team?.currentSubmissionId;
-    if(!team || isPaused || isLoading || !gameSettings?.isStarted || !team.gameStartTime || (team.currentPuzzleIndex >= puzzles.length && puzzles.length > 0)) return;
+    if(!team || isPaused || isLoading || !gameSettings?.isStarted || !team.gameStartTime || (team.currentPuzzleIndex >= puzzles.length && puzzles.length > 0)) {
+        if (team?.gameStartTime) {
+            const gameStartTime = team.gameStartTime.toDate().getTime();
+            const now = Date.now();
+            const elapsed = Math.floor((now - gameStartTime) / 1000);
+            const newOverallTimeLeft = OVERALL_GAME_DURATION - elapsed;
+            setOverallTimeLeft(newOverallTimeLeft > 0 ? newOverallTimeLeft : 0);
+        } else if (overallTimeLeft === null) {
+            setOverallTimeLeft(OVERALL_GAME_DURATION);
+        }
+        return;
+    }
 
     const timer = setInterval(() => {
         // Overall Game Timer
@@ -674,7 +685,7 @@ export default function GamePage() {
     );
   }
 
-  if (overallTimeLeft <= 0) {
+  if (overallTimeLeft !== null && overallTimeLeft <= 0) {
     return (
       <div className="container mx-auto py-8 px-4">
         {renderHeader()}
@@ -810,10 +821,10 @@ export default function GamePage() {
                 </div>
                 <div className="flex items-center gap-2 text-lg font-semibold text-primary">
                     <Timer className="h-6 w-6" />
-                    <span>{isPaused ? "Paused" : formatTime(overallTimeLeft)}</span>
+                    {overallTimeLeft !== null && <span>{isPaused ? "Paused" : formatTime(overallTimeLeft)}</span>}
                 </div>
               </div>
-               <Progress value={(overallTimeLeft / OVERALL_GAME_DURATION) * 100} className="w-full mt-4" />
+               {overallTimeLeft !== null && <Progress value={(overallTimeLeft / OVERALL_GAME_DURATION) * 100} className="w-full mt-4" />}
             </CardHeader>
             <CardContent className="flex-grow">
               <p className="text-lg text-muted-foreground whitespace-pre-wrap">{currentPuzzle.puzzle}</p>
@@ -966,3 +977,4 @@ export default function GamePage() {
     
 
     
+
