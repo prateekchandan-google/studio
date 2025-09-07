@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Sparkles, Trophy, Users, Camera, CircleUserRound, Replace, X, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { Lightbulb, SkipForward, Timer, Send, Info, Frown, QrCode, Share2, Copy, Check, Loader, UserCircle, LogOut, Sparkles, Trophy, Users, Camera, CircleUserRound, Replace, X, CheckCircle2, XCircle, AlertTriangle, FileUp } from 'lucide-react';
 import QRCode from "react-qr-code";
 import Image from 'next/image';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -868,11 +868,11 @@ export default function GamePage() {
                         <Label>
                             Supporting photo <span className="text-destructive">*Required</span>
                         </Label>
-                        <div className="flex gap-2 items-center">
+                         <div className="flex gap-2 items-stretch">
                             <Dialog open={isCameraDialogOpen} onOpenChange={setIsCameraDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button type="button" variant="default" className="flex-1" disabled={isPaused || isSubmitting || !!capturedImage}>
-                                        <Camera className="mr-2 h-4 w-4" /> Take Photo
+                                    <Button size="lg" type="button" variant="default" className="flex-1" disabled={isPaused || isSubmitting || !!capturedImage}>
+                                        <Camera className="mr-2 h-5 w-5" /> Take Photo
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent>
@@ -921,8 +921,15 @@ export default function GamePage() {
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
-                            <span className="text-xs text-muted-foreground">OR</span>
-                            <Input id="image-answer" name="image-answer" type="file" accept="image/*" required className="flex-1" disabled={isPaused || isSubmitting || !!capturedImage} />
+                            <Label htmlFor="image-answer" className="relative">
+                               <Input id="image-answer" name="image-answer" type="file" accept="image/*" className="sr-only" disabled={isPaused || isSubmitting || !!capturedImage} />
+                               <Button size="lg" asChild variant="outline" disabled={isPaused || isSubmitting || !!capturedImage} className="cursor-pointer h-full">
+                                    <div>
+                                        <FileUp className="h-5 w-5" />
+                                        <span className="sr-only">Upload file</span>
+                                    </div>
+                               </Button>
+                            </Label>
                         </div>
                         
                         {capturedImage && (
@@ -955,5 +962,7 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
 
     
