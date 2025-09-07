@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X, Bot, Loader, UserCircle, Users, Key } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { analyzeSubmission } from "@/ai/flows/submission-analyzer";
-import { collection, query, where, onSnapshot, orderBy, writeBatch, doc, increment, getDocs, FieldValue, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy, writeBatch, doc, increment, getDocs, FieldValue, serverTimestamp, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -96,13 +96,14 @@ export default function AdminDashboardPage() {
     const batch = writeBatch(db);
     const submissionRef = doc(db, "submissions", submissionId);
     const teamRef = doc(db, "teams", teamId);
-    const teamDoc = await getDocs(query(collection(db, 'teams'), where('id', '==', teamId)));
-    const currentTeam = teamDoc.docs[0]?.data() as Team;
-
-    if (!currentTeam) {
+    const teamDoc = await getDoc(teamRef);
+    
+    if (!teamDoc.exists()) {
         toast({ title: 'Error', description: 'Could not find team data.', variant: 'destructive'});
         return;
     }
+
+    const currentTeam = teamDoc.data() as Team;
 
     let pointsToAdd = 0;
     let wasFirstSolve = false;
