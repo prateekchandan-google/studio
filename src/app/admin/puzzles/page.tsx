@@ -89,7 +89,7 @@ const PuzzleCard = ({ puzzle, onOpen, isDetailedView, onEdit }: { puzzle: Puzzle
         )}
         {isDetailedView && (
              <CardFooter className="pl-10 pb-4 justify-end">
-                <Button variant="outline" size="sm" onClick={onEdit}>
+                <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                     <Pencil className="mr-2 h-4 w-4" /> Edit
                 </Button>
             </CardFooter>
@@ -132,20 +132,8 @@ export default function PuzzleManagementPage() {
 
   const form = useForm<PuzzleFormValues>({
     resolver: zodResolver(puzzleSchema),
-    defaultValues: { title: '', puzzle: '', hint: '', answer: '', pathId: null },
+    defaultValues: { title: '', puzzle: '', hint: '', answer: '', pathId: '1' },
   });
-
-  useEffect(() => {
-    if (editingPuzzle) {
-      form.reset({
-        title: editingPuzzle.title,
-        puzzle: editingPuzzle.puzzle,
-        hint: editingPuzzle.hint,
-        answer: editingPuzzle.answer,
-        pathId: editingPuzzle.pathId ? String(editingPuzzle.pathId) : null,
-      });
-    }
-  }, [editingPuzzle, form]);
 
   useEffect(() => {
     const puzzlesQuery = query(collection(db, 'puzzles'), orderBy('order', 'asc'));
@@ -170,9 +158,9 @@ export default function PuzzleManagementPage() {
     };
     
     puzzles.forEach(puzzle => {
-      const pathId = puzzle.pathId ? `path-${puzzle.pathId}` : 'path-1'; // Default to path-1 if not set
-      if (columns[pathId]) {
-        columns[pathId].push(puzzle);
+      const pathKey = `path-${puzzle.pathId || 1}`;
+      if (columns[pathKey]) {
+        columns[pathKey].push(puzzle);
       }
     });
 
@@ -213,41 +201,23 @@ export default function PuzzleManagementPage() {
     }
   
     setPuzzles((prev) => {
-      const activeItems = puzzlesByPath[activeContainer];
-      const overItems = puzzlesByPath[overContainer];
-  
-      const activeIndex = activeItems.findIndex((p) => p.id === activeId);
-      const overIndex = overItems.findIndex((p) => p.id === overId);
-  
-      let newIndex;
-      if (overId in puzzlesByPath) {
-        newIndex = overItems.length + 1;
-      } else {
-        const isBelowOverItem =
-          over &&
-          active.rect.current.translated &&
-          active.rect.current.translated.top > over.rect.top + over.rect.height;
-  
-        const modifier = isBelowOverItem ? 1 : 0;
-  
-        newIndex = overIndex >= 0 ? overIndex + modifier : overItems.length + 1;
-      }
+      const activeIndex = prev.findIndex((p) => p.id === activeId);
+      const overIndex = prev.findIndex((p) => p.id === overId);
+      
+      const newPathId = parseInt(overContainer.replace('path-', ''));
+      
+      let newPuzzles = [...prev];
+      newPuzzles[activeIndex] = { ...newPuzzles[activeIndex], pathId: newPathId };
 
-      const newPathId = parseInt(overContainer.split('-')[1]);
-  
-      return prev.map(p => {
-        if (p.id === activeId) {
-          return { ...p, pathId: newPathId };
-        }
-        return p;
-      });
+      return arrayMove(newPuzzles, activeIndex, overIndex);
     });
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
      const { active, over } = event;
-    if (!over) {
-      setActiveId(null);
+     setActiveId(null);
+     
+    if (!over || active.id === over.id) {
       return;
     }
     
@@ -255,70 +225,36 @@ export default function PuzzleManagementPage() {
     const overContainer = findContainer(over.id);
 
     if (!activeContainer || !overContainer) {
-        setActiveId(null);
         return;
     }
-
-    const activeIndex = puzzlesByPath[activeContainer].findIndex(p => p.id === active.id);
-    const overIndex = puzzlesByPath[overContainer].findIndex(p => p.id === over.id);
-
-    let newPuzzles = [...puzzles];
-
-    if (activeContainer === overContainer) {
-        if (activeIndex !== overIndex) {
-            const pathPuzzles = puzzlesByPath[activeContainer];
-            const reordered = arrayMove(pathPuzzles, activeIndex, overIndex);
-            
-            // Create a map of the original puzzles for easy lookup
-            const puzzleMap = new Map(newPuzzles.map(p => [p.id, p]));
-            
-            // Update the main puzzles array
-            reordered.forEach(p => {
-                if (puzzleMap.has(p.id)) {
-                    puzzleMap.set(p.id, p);
-                }
-            });
-
-            // Reconstruct the puzzles array based on the map to preserve order
-            let otherPuzzles = newPuzzles.filter(p => p.pathId !== parseInt(activeContainer.split('-')[1]));
-            newPuzzles = [...otherPuzzles, ...reordered];
-        }
-    } else {
-        const [movedItem] = puzzlesByPath[activeContainer].splice(activeIndex, 1);
-        const newPathId = parseInt(overContainer.split('-')[1]);
-        movedItem.pathId = newPathId;
-
-        puzzlesByPath[overContainer].splice(overIndex, 0, movedItem);
-
-        // Reconstruct the full puzzle list
-        newPuzzles = Object.values(puzzlesByPath).flat();
-    }
-
-    setPuzzles(newPuzzles);
     
+    const oldIndex = puzzles.findIndex(p => p.id === active.id);
+    const newIndex = puzzles.findIndex(p => p.id === over.id);
+
+    const newOrderedPuzzles = arrayMove(puzzles, oldIndex, newIndex);
+    setPuzzles(newOrderedPuzzles);
+
     // Save to Firestore
     const batch = writeBatch(db);
-    newPuzzles.forEach((puzzle, index) => {
+    newOrderedPuzzles.forEach((puzzle, index) => {
         const puzzleRef = doc(db, 'puzzles', puzzle.id);
-        const pathId = puzzle.pathId || 1; // Default to path 1 if undefined
-        const puzzlesInPath = newPuzzles.filter(p => (p.pathId || 1) === pathId);
-        const orderInPath = puzzlesInPath.findIndex(p => p.id === puzzle.id);
+        const pathId = puzzle.pathId || 1;
+        const puzzlesInThisPath = newOrderedPuzzles.filter(p => (p.pathId || 1) === pathId);
+        const orderInPath = puzzlesInThisPath.findIndex(p => p.id === puzzle.id);
 
         batch.update(puzzleRef, { 
             pathId: pathId, 
-            order: orderInPath 
+            order: orderInPath
         });
     });
 
     try {
       await batch.commit();
-      toast({ title: "Puzzles Updated", description: "Your puzzle paths have been saved." });
+      toast({ title: "Puzzles Updated", description: "Your puzzle order and paths have been saved." });
     } catch (error) {
       console.error("Failed to save puzzle order:", error);
       toast({ title: "Save Failed", description: "Could not save your changes. Please try again.", variant: 'destructive' });
       // Revert optimistic update on failure if desired
-    } finally {
-        setActiveId(null);
     }
   };
 
@@ -349,7 +285,6 @@ export default function PuzzleManagementPage() {
       }
       setShowAddForm(false);
       setEditingPuzzle(null);
-      form.reset();
     } catch (error) {
       console.error('Error saving puzzle:', error);
       toast({ title: 'Save Failed', variant: 'destructive' });
@@ -399,8 +334,26 @@ export default function PuzzleManagementPage() {
     setEditingPuzzle(puzzle);
     setShowAddForm(true);
     setIsViewDialogOpen(false); 
+    form.reset({
+      title: puzzle.title,
+      puzzle: puzzle.puzzle,
+      hint: puzzle.hint,
+      answer: puzzle.answer,
+      pathId: puzzle.pathId ? String(puzzle.pathId) : '1',
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+  
+  const handleAddNewClick = () => {
+    setEditingPuzzle(null);
+    form.reset({ title: '', puzzle: '', hint: '', answer: '', pathId: '1' });
+    setShowAddForm(!showAddForm);
+  };
+
+  const handleCancel = () => {
+      setShowAddForm(false);
+      setEditingPuzzle(null);
+  }
 
   const activePuzzle = activeId ? puzzles.find(p => p.id === activeId) : null;
 
@@ -420,7 +373,7 @@ export default function PuzzleManagementPage() {
             />
             <Label htmlFor="detailed-view">Detailed View</Label>
           </div>
-          <Button onClick={() => { setShowAddForm(!showAddForm); setEditingPuzzle(null); form.reset(); }}>
+          <Button onClick={handleAddNewClick}>
             <PlusCircle className="mr-2 h-4 w-4" />
             {showAddForm && !editingPuzzle ? 'Cancel' : 'Add New Puzzle'}
           </Button>
@@ -446,7 +399,7 @@ export default function PuzzleManagementPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Assign to Path</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                      <Select onValueChange={field.onChange} value={field.value ?? '1'}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select a path" /></SelectTrigger></FormControl>
                         <SelectContent>{[1, 2, 3, 4, 5].map(i => (<SelectItem key={i} value={String(i)}>{`Path ${i}`}</SelectItem>))}</SelectContent>
                       </Select>
@@ -454,7 +407,7 @@ export default function PuzzleManagementPage() {
                     </FormItem>)} />
               </CardContent>
               <CardFooter className="flex justify-end gap-2">
-                <Button type="button" variant="ghost" onClick={() => { setShowAddForm(false); setEditingPuzzle(null); }} disabled={isSubmitting}>Cancel</Button>
+                <Button type="button" variant="ghost" onClick={handleCancel} disabled={isSubmitting}>Cancel</Button>
                 <Button type="submit" disabled={isSubmitting}>{isSubmitting ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}Save Puzzle</Button>
               </CardFooter>
             </form>
@@ -507,5 +460,3 @@ export default function PuzzleManagementPage() {
     </div>
   );
 }
-
-    
