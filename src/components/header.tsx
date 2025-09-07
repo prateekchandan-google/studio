@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Menu, Loader, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { GameSettings } from "@/lib/types";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigation } from "@/hooks/use-navigation";
 
 const baseNavLinks = [
   { href: "/", label: "Start Game" },
@@ -27,8 +27,7 @@ export function Header() {
   const [hasActiveSession, setHasActiveSession] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSessionLoading, setIsSessionLoading] = useState(true);
-  const [isNavigating, setIsNavigating] = useState(false);
-
+  const { handleLinkClick } = useNavigation();
 
   useEffect(() => {
     const settingsRef = doc(db, 'settings', 'game');
@@ -53,13 +52,7 @@ export function Header() {
     setIsSessionLoading(false);
   }, [pathname]);
 
-  useEffect(() => {
-    setIsNavigating(false);
-  }, [pathname]);
-
-
   const getLinkClass = (href: string) => {
-    // Special handling for game routes
     if (href === "/" && (pathname.startsWith('/game') || pathname === '/')) {
       return "text-foreground";
     }
@@ -75,27 +68,16 @@ export function Header() {
     navLinks.push({ href: "/admin/gallery", label: "Gallery" });
   }
 
-  const handleLinkClick = () => {
-    setIsNavigating(true);
-  }
-
   const renderNavLinks = (isMobile = false) => {
     if (isSessionLoading) {
-      return isMobile ? null : <Skeleton className="w-48 h-6 rounded-md" />;
+        return null;
     }
-    if (isNavigating) {
-        return (
-            <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader className="h-5 w-5 animate-spin"/>
-                <span>Loading...</span>
-            </div>
-        )
-    }
+    
     return navLinks.map((link) => (
         <Link
           key={link.href}
           href={link.href}
-          onClick={handleLinkClick}
+          onClick={() => handleLinkClick(link.href)}
           className={cn(
             "transition-colors hover:text-foreground/80",
             isMobile ? "flex items-center px-4" : "",
@@ -112,7 +94,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
+          <Link href="/" className="mr-6 flex items-center space-x-2" onClick={() => handleLinkClick('/')}>
             <Image
               src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Google_TV_Icon.svg/1024px-Google_TV_Icon.svg.png"
               width={24}

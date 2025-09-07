@@ -35,6 +35,8 @@ export default function StartGamePage() {
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [showStartTimerDialog, setShowStartTimerDialog] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -274,11 +276,20 @@ export default function StartGamePage() {
                             <span className="flex-shrink mx-4 text-xs text-muted-foreground uppercase">Or</span>
                             <div className="flex-grow border-t border-muted-foreground/20"></div>
                         </div>
-                        <Button type="button" variant="secondary" className="w-full" asChild>
-                        <Link href="/register">
-                            <UserPlus className="mr-2 h-4 w-4" />
-                            Register New Team
-                        </Link>
+                         <Button type="button" variant="secondary" className="w-full" asChild onClick={() => setIsRegistering(true)}>
+                            <Link href="/register">
+                                {isRegistering ? (
+                                    <>
+                                        <Loader className="mr-2 h-4 w-4 animate-spin" />
+                                        Please wait...
+                                    </>
+                                ) : (
+                                    <>
+                                        <UserPlus className="mr-2 h-4 w-4" />
+                                        Register New Team
+                                    </>
+                                )}
+                            </Link>
                         </Button>
                     </>
                 )}
@@ -288,10 +299,19 @@ export default function StartGamePage() {
         ) : (
              <CardFooter className="flex flex-col gap-4">
                 {gameSettings.isRegistrationOpen && (
-                    <Button type="button" variant="secondary" className="w-full" asChild>
+                    <Button type="button" variant="secondary" className="w-full" asChild onClick={() => setIsRegistering(true)}>
                         <Link href="/register">
-                            <UserPlus className="mr-2 h-4 w-4" />
-                            Register New Team
+                            {isRegistering ? (
+                                <>
+                                    <Loader className="mr-2 h-4 w-4 animate-spin" />
+                                    Please wait...
+                                </>
+                            ) : (
+                                <>
+                                    <UserPlus className="mr-2 h-4 w-4" />
+                                    Register New Team
+                                </>
+                            )}
                         </Link>
                     </Button>
                 )}

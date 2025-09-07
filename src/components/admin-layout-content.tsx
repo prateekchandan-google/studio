@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { Background } from './background';
 import { Header } from './header';
+import { ClientLayout } from './client-layout';
 
 export function AdminLayoutContent({
     children,
@@ -17,10 +18,10 @@ export function AdminLayoutContent({
     }
 
     return (
-        <>
+        <ClientLayout>
             <Background />
             <Header />
             <main className="flex-1">{children}</main>
-        </>
+        </ClientLayout>
     )
 }
