@@ -40,7 +40,6 @@ type PuzzleFormValues = z.infer<typeof puzzleSchema>;
 
 const PuzzleCard = ({ puzzle, index, onOpen, isDetailedView, onEdit, onContextMenu }: { puzzle: Puzzle; index: number; onOpen: () => void; isDetailedView: boolean, onEdit: () => void; onContextMenu: (event: React.MouseEvent, puzzle: Puzzle) => void }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: puzzle.id });
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -59,18 +58,18 @@ const PuzzleCard = ({ puzzle, index, onOpen, isDetailedView, onEdit, onContextMe
         }}
     >
       <Card className="bg-muted/50 relative cursor-pointer" onClick={onOpen}>
-        <button {...attributes} {...listeners} className="absolute top-1/2 -translate-y-1/2 left-2 cursor-grab p-2 touch-none">
+        <button {...attributes} {...listeners} className="absolute top-1/2 -translate-y-1/2 left-2 cursor-grab p-2 touch-none z-10">
           <GripVertical className="text-muted-foreground" />
            <span className="sr-only">Drag to reorder puzzle</span>
         </button>
         <CardHeader className="pl-10">
-          <CardTitle className="text-base flex items-center">
+          <CardTitle className="text-base flex items-center cursor-text">
             {isDetailedView && <span className="text-muted-foreground font-mono text-xs mr-2">{index + 1}.</span>}
             {puzzle.title}
             </CardTitle>
         </CardHeader>
         {isDetailedView && (
-          <CardContent className="space-y-3 pl-10 text-sm">
+          <CardContent className="space-y-3 pl-10 text-sm cursor-auto">
             <Collapsible>
               <CollapsibleTrigger asChild>
                  <Button variant="ghost" size="sm" className="w-full justify-between px-2">
@@ -102,7 +101,7 @@ const PuzzleCard = ({ puzzle, index, onOpen, isDetailedView, onEdit, onContextMe
           </CardContent>
         )}
         {isDetailedView && (
-             <CardFooter className="pl-10 pb-4 justify-end">
+             <CardFooter className="pl-10 pb-4 justify-end cursor-auto">
                 <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                     <Pencil className="mr-2 h-4 w-4" /> Edit
                 </Button>
@@ -531,3 +530,5 @@ export default function PuzzleManagementPage() {
     </div>
   );
 }
+
+    
