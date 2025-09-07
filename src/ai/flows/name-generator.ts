@@ -30,18 +30,18 @@ const prompt = ai.definePrompt({
   name: 'generateTeamNamePrompt',
   input: {schema: GenerateTeamNameInputSchema},
   output: {schema: GenerateTeamNameOutputSchema},
-  prompt: `You are a creative assistant for a treasure hunt game set in India.
+  prompt: `You are a creative assistant for a treasure hunt game. Your task is to generate a fun, adventurous, and unique team name.
 
-Generate a fun, creative, and adventurous team name. The team name must be alliterative with the provided house name: {{{houseName}}}.
+The name must be alliterative with the provided house name: {{{houseName}}}.
 
-The team name should be inspired by Indian culture, food, or mythology, and it should also have a hint of adventure. For example, if the house name is "Halwa", a good team name could be "Halwa Heroes" or "Halwa Hunters".
+Draw inspiration from the vast well of Indian culture, including mythology, food, historical figures, or places. The name should evoke a sense of adventure and cleverness. For example, if the house name is "Jalebi", you could suggest "Jalebi Jaguars" or "Jalebi Jesters".
 
 House Name: {{{houseName}}}
 
-IMPORTANT: Make sure to generate a different, unique name every time this prompt is used.
+IMPORTANT: Ensure the generated name is different and creative each time. Avoid common or repetitive suggestions.
 `,
   config: {
-    temperature: 0.9,
+    temperature: 1.0,
   }
 });
 
