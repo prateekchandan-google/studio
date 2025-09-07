@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { PlusCircle, Loader, BookOpen, Pencil, Sparkles, GripVertical, View, ChevronsUpDown } from 'lucide-react';
+import { PlusCircle, Loader, BookOpen, Pencil, Sparkles, GripVertical, View, ChevronsUpDown, Eye, Edit } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverEvent, UniqueIdentifier } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
@@ -25,6 +25,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
 
 const puzzleSchema = z.object({
   title: z.string().min(3, 'Puzzle title must be at least 3 characters.'),
@@ -36,17 +38,38 @@ const puzzleSchema = z.object({
 
 type PuzzleFormValues = z.infer<typeof puzzleSchema>;
 
-const PuzzleCard = ({ puzzle, onOpen, isDetailedView, onEdit }: { puzzle: Puzzle; onOpen: () => void; isDetailedView: boolean, onEdit: () => void; }) => {
+const PuzzleCard = ({ puzzle, onOpen, isDetailedView, onEdit, onContextMenu }: { puzzle: Puzzle; onOpen: () => void; isDetailedView: boolean, onEdit: () => void; onContextMenu: (event: React.MouseEvent | React.TouchEvent, puzzle: Puzzle) => void }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: puzzle.id });
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+  
+  const handlePointerDown = (e: React.PointerEvent) => {
+    longPressTimer.current = setTimeout(() => {
+        onContextMenu(e as any, puzzle);
+    }, 500); // 500ms for long press
+  };
+
+  const handlePointerUp = () => {
+    if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+    }
+  };
+
 
   return (
-    <div ref={setNodeRef} style={style} className="mb-4 touch-none">
+    <div 
+        ref={setNodeRef} 
+        style={style} 
+        className="mb-4 touch-none"
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+    >
       <Card className="bg-muted/50 relative" onClick={onOpen}>
         <button {...attributes} {...listeners} className="absolute top-1/2 -translate-y-1/2 left-2 cursor-grab p-2">
           <GripVertical className="text-muted-foreground" />
@@ -99,7 +122,7 @@ const PuzzleCard = ({ puzzle, onOpen, isDetailedView, onEdit }: { puzzle: Puzzle
   );
 };
 
-const PuzzlePathColumn = ({ id, title, puzzles = [], onOpen, isDetailedView, onEdit }: { id: string; title: string; puzzles?: Puzzle[]; onOpen: (puzzle: Puzzle) => void; isDetailedView: boolean; onEdit: (puzzle: Puzzle) => void; }) => {
+const PuzzlePathColumn = ({ id, title, puzzles = [], onOpen, isDetailedView, onEdit, onContextMenu }: { id: string; title: string; puzzles?: Puzzle[]; onOpen: (puzzle: Puzzle) => void; isDetailedView: boolean; onEdit: (puzzle: Puzzle) => void; onContextMenu: (event: React.MouseEvent | React.TouchEvent, puzzle: Puzzle) => void; }) => {
   return (
     <div id={id} className="bg-card p-4 rounded-lg w-full border">
       <div className="flex justify-between items-center mb-4">
@@ -109,7 +132,7 @@ const PuzzlePathColumn = ({ id, title, puzzles = [], onOpen, isDetailedView, onE
       <SortableContext items={puzzles.map(p => p.id)} strategy={rectSortingStrategy}>
         <div className="min-h-[200px] space-y-2">
           {puzzles.map(puzzle => (
-            <PuzzleCard key={puzzle.id} puzzle={puzzle} onOpen={() => onOpen(puzzle)} isDetailedView={isDetailedView} onEdit={() => onEdit(puzzle)} />
+            <PuzzleCard key={puzzle.id} puzzle={puzzle} onOpen={() => onOpen(puzzle)} isDetailedView={isDetailedView} onEdit={() => onEdit(puzzle)} onContextMenu={onContextMenu} />
           ))}
         </div>
       </SortableContext>
@@ -128,6 +151,13 @@ export default function PuzzleManagementPage() {
   const [viewingPuzzle, setViewingPuzzle] = useState<Puzzle | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDetailedView, setIsDetailedView] = useState(false);
+  
+  const [contextMenuPuzzle, setContextMenuPuzzle] = useState<Puzzle | null>(null);
+  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
+  const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+  const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
+
+
   const { toast } = useToast();
 
   const form = useForm<PuzzleFormValues>({
@@ -229,7 +259,13 @@ export default function PuzzleManagementPage() {
     }
     
     const oldIndex = puzzles.findIndex(p => p.id === active.id);
-    const newIndex = puzzles.findIndex(p => p.id === over.id);
+    let newIndex = puzzles.findIndex(p => p.id === over.id);
+
+    if (activeContainer !== overContainer) {
+       const pathPuzzles = puzzles.filter(p => `path-${p.pathId}` === overContainer);
+       const overPuzzleIndex = pathPuzzles.findIndex(p => p.id === over.id);
+       newIndex = puzzles.indexOf(pathPuzzles[overPuzzleIndex]);
+    }
 
     const newOrderedPuzzles = arrayMove(puzzles, oldIndex, newIndex);
     setPuzzles(newOrderedPuzzles);
@@ -239,6 +275,8 @@ export default function PuzzleManagementPage() {
     newOrderedPuzzles.forEach((puzzle, index) => {
         const puzzleRef = doc(db, 'puzzles', puzzle.id);
         const pathId = puzzle.pathId || 1;
+        
+        // We need to calculate the order within the specific path
         const puzzlesInThisPath = newOrderedPuzzles.filter(p => (p.pathId || 1) === pathId);
         const orderInPath = puzzlesInThisPath.findIndex(p => p.id === puzzle.id);
 
@@ -323,6 +361,24 @@ export default function PuzzleManagementPage() {
       setIsGeneratingTitle(false);
     }
   };
+  
+  const handleContextMenu = (event: React.MouseEvent | React.TouchEvent, puzzle: Puzzle) => {
+    event.preventDefault();
+    setContextMenuPuzzle(puzzle);
+    
+    const isTouchEvent = 'touches' in event;
+    const x = isTouchEvent ? event.touches[0].clientX : event.clientX;
+    const y = isTouchEvent ? event.touches[0].clientY : event.clientY;
+    
+    setContextMenuPosition({ x, y });
+    setIsContextMenuOpen(true);
+    
+    // We need to trigger the dropdown menu programmatically
+    setTimeout(() => {
+        dropdownTriggerRef.current?.click();
+    }, 50);
+  };
+
 
   const openViewDialog = (puzzle: Puzzle) => {
     if (isDetailedView) return;
@@ -339,15 +395,20 @@ export default function PuzzleManagementPage() {
       puzzle: puzzle.puzzle,
       hint: puzzle.hint,
       answer: puzzle.answer,
-      pathId: puzzle.pathId ? String(puzzle.pathId) : '1',
+      pathId: String(puzzle.pathId || '1'),
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
   const handleAddNewClick = () => {
-    setEditingPuzzle(null);
-    form.reset({ title: '', puzzle: '', hint: '', answer: '', pathId: '1' });
-    setShowAddForm(!showAddForm);
+    if (showAddForm) {
+      setShowAddForm(false);
+      setEditingPuzzle(null);
+    } else {
+      setEditingPuzzle(null);
+      form.reset({ title: '', puzzle: '', hint: '', answer: '', pathId: '1' });
+      setShowAddForm(true);
+    }
   };
 
   const handleCancel = () => {
@@ -375,10 +436,27 @@ export default function PuzzleManagementPage() {
           </div>
           <Button onClick={handleAddNewClick}>
             <PlusCircle className="mr-2 h-4 w-4" />
-            {showAddForm && !editingPuzzle ? 'Cancel' : 'Add New Puzzle'}
+            {showAddForm ? 'Cancel' : 'Add New Puzzle'}
           </Button>
         </div>
       </header>
+      
+      {isContextMenuOpen && contextMenuPosition && (
+          <DropdownMenu open={isContextMenuOpen} onOpenChange={setIsContextMenuOpen}>
+              <DropdownMenuTrigger ref={dropdownTriggerRef} style={{ position: 'fixed', top: contextMenuPosition.y, left: contextMenuPosition.x, width: 0, height: 0, opacity: 0 }} />
+              <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => contextMenuPuzzle && openViewDialog(contextMenuPuzzle)}>
+                    <Eye className="mr-2 h-4 w-4"/>
+                    View
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => contextMenuPuzzle && openEditForm(contextMenuPuzzle)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+              </DropdownMenuContent>
+          </DropdownMenu>
+      )}
+
 
       {(showAddForm || editingPuzzle) && (
         <Card>
@@ -418,7 +496,7 @@ export default function PuzzleManagementPage() {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragOver={handleDragOver}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           {Object.entries(puzzlesByPath).map(([pathId, pathPuzzles]) => (
-            <PuzzlePathColumn key={pathId} id={pathId} title={`Path ${pathId.split('-')[1]}`} puzzles={pathPuzzles} onOpen={openViewDialog} isDetailedView={isDetailedView} onEdit={openEditForm} />
+            <PuzzlePathColumn key={pathId} id={pathId} title={`Path ${pathId.split('-')[1]}`} puzzles={pathPuzzles} onOpen={openViewDialog} isDetailedView={isDetailedView} onEdit={openEditForm} onContextMenu={handleContextMenu} />
           ))}
         </div>
       </DndContext>
