@@ -868,66 +868,62 @@ export default function GamePage() {
                         <Label>
                             Supporting photo <span className="text-destructive">*Required</span>
                         </Label>
-                        <Dialog open={isCameraDialogOpen} onOpenChange={setIsCameraDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button type="button" variant="default" className="w-full" disabled={isPaused || isSubmitting || !!capturedImage}>
-                                    <Camera className="mr-2 h-4 w-4" /> Take Photo
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Take a Photo</DialogTitle>
-                                </DialogHeader>
-                                <div className="flex flex-col items-center gap-4">
-                                    {capturedImage ? (
-                                        <Image src={capturedImage} alt="Captured" width={400} height={300} className="rounded-md" />
-                                    ) : (
-                                        <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted playsInline />
-                                    )}
-                                    {!hasCameraPermission && hasCameraPermission !== null && (
-                                        <Alert variant="destructive">
-                                            <CircleUserRound className="h-4 w-4" />
-                                            <AlertTitle>Camera Permission Needed</AlertTitle>
-                                            <AlertDescription>
-                                                Please allow camera access in your browser to take a photo.
-                                            </AlertDescription>
-                                        </Alert>
-                                    )}
-                                </div>
-                                <DialogFooter className="mt-4">
-                                    {capturedImage ? (
-                                        <>
-                                            <Button variant="outline" onClick={handleRetake}>
-                                                <Replace className="mr-2 h-4 w-4" />
-                                                Retake
-                                            </Button>
-                                            <Button onClick={handleUsePhoto}>
-                                                <Check className="mr-2 h-4 w-4" />
-                                                Use Photo
-                                            </Button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <DialogClose asChild>
-                                                <Button type="button" variant="ghost">Cancel</Button>
-                                            </DialogClose>
-                                            <Button onClick={handleCapture} disabled={!hasCameraPermission}>
-                                                <Camera className="mr-2 h-4 w-4" />
-                                                Capture
-                                            </Button>
-                                        </>
-                                    )}
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                        
-                        <div className="relative flex items-center">
-                            <div className="flex-grow border-t"></div>
-                            <span className="flex-shrink mx-4 text-xs text-muted-foreground">OR</span>
-                            <div className="flex-grow border-t"></div>
+                        <div className="flex gap-2 items-center">
+                            <Dialog open={isCameraDialogOpen} onOpenChange={setIsCameraDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button type="button" variant="default" className="flex-1" disabled={isPaused || isSubmitting || !!capturedImage}>
+                                        <Camera className="mr-2 h-4 w-4" /> Take Photo
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Take a Photo</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="flex flex-col items-center gap-4">
+                                        {capturedImage ? (
+                                            <Image src={capturedImage} alt="Captured" width={400} height={300} className="rounded-md" />
+                                        ) : (
+                                            <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted playsInline />
+                                        )}
+                                        {!hasCameraPermission && hasCameraPermission !== null && (
+                                            <Alert variant="destructive">
+                                                <CircleUserRound className="h-4 w-4" />
+                                                <AlertTitle>Camera Permission Needed</AlertTitle>
+                                                <AlertDescription>
+                                                    Please allow camera access in your browser to take a photo.
+                                                </AlertDescription>
+                                            </Alert>
+                                        )}
+                                    </div>
+                                    <DialogFooter className="mt-4">
+                                        {capturedImage ? (
+                                            <>
+                                                <Button variant="outline" onClick={handleRetake}>
+                                                    <Replace className="mr-2 h-4 w-4" />
+                                                    Retake
+                                                </Button>
+                                                <Button onClick={handleUsePhoto}>
+                                                    <Check className="mr-2 h-4 w-4" />
+                                                    Use Photo
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <DialogClose asChild>
+                                                    <Button type="button" variant="ghost">Cancel</Button>
+                                                </DialogClose>
+                                                <Button onClick={handleCapture} disabled={!hasCameraPermission}>
+                                                    <Camera className="mr-2 h-4 w-4" />
+                                                    Capture
+                                                </Button>
+                                            </>
+                                        )}
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                            <span className="text-xs text-muted-foreground">OR</span>
+                            <Input id="image-answer" name="image-answer" type="file" accept="image/*" required className="flex-1" disabled={isPaused || isSubmitting || !!capturedImage} />
                         </div>
-
-                        <Input id="image-answer" name="image-answer" type="file" accept="image/*" required disabled={isPaused || isSubmitting || !!capturedImage} />
                         
                         {capturedImage && (
                             <div className="relative mt-2 border rounded-md p-2">
@@ -959,3 +955,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
