@@ -27,6 +27,7 @@ const IMMEDIATE_HINT_PENALTY = 10;
 const SKIP_PENALTY = 0; // No points awarded, but no deduction
 const PUZZLE_REWARD = 20;
 const FIRST_SOLVE_BONUS = 10;
+const VICTORY_POINTS_MAP = [50, 45, 40, 35, 30, 25, 20, 15, 10, 5];
 const OVERALL_GAME_DURATION = 60 * 60; // 60 minutes in seconds
 const HINT_DELAY = 5 * 60; // 5 minutes in seconds
 const SKIP_DELAY = 10 * 60; // 10 minutes in seconds
@@ -151,16 +152,27 @@ export default function GamePage() {
         }
         if (prevPuzzleIndexRef.current !== undefined && teamData.currentPuzzleIndex > prevPuzzleIndexRef.current) {
             const scoreIncrease = teamData.score - (prevScoreRef.current ?? teamData.score);
-            if (scoreIncrease > PUZZLE_REWARD) {
-                 toast({
+            let message = `+${PUZZLE_REWARD} points! On to the next challenge.`;
+
+            if (scoreIncrease > PUZZLE_REWARD && scoreIncrease <= PUZZLE_REWARD + FIRST_SOLVE_BONUS) {
+                toast({
                     title: 'First Solve Bonus!',
                     description: `You were the first team to solve that! +${FIRST_SOLVE_BONUS} bonus points!`,
                 });
             } else {
-                toast({
+                 toast({
                     title: 'Solution Approved!',
                     description: `+${PUZZLE_REWARD} points! On to the next challenge.`,
                 });
+            }
+
+            if (teamData.finishRank && teamData.finishRank > 0 && teamData.finishRank <= 10) {
+                 const victoryPoints = VICTORY_POINTS_MAP[teamData.finishRank - 1];
+                 toast({
+                    title: 'Victory Points!',
+                    description: `You finished in the top 10! Rank ${teamData.finishRank} earns you ${victoryPoints} bonus points!`,
+                    duration: 5000,
+                 });
             }
         }
         
@@ -941,7 +953,3 @@ export default function GamePage() {
     </div>
   );
 }
-
-
-
-    

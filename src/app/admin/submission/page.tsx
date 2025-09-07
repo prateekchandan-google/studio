@@ -27,9 +27,11 @@ type SubmissionWithDetails = SubmissionWithAI & {
 
 const PUZZLE_REWARD = 20;
 const FIRST_SOLVE_BONUS = 10;
+const VICTORY_POINTS_MAP = [50, 45, 40, 35, 30, 25, 20, 15, 10, 5];
 
 export default function AdminDashboardPage() {
   const [submissions, setSubmissions] = useState<SubmissionWithDetails[]>([]);
+  const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -43,6 +45,7 @@ export default function AdminDashboardPage() {
             const puzzlesQuery = query(collection(db, 'puzzles'));
             const puzzlesSnapshot = await getDocs(puzzlesQuery);
             const puzzlesData = puzzlesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Puzzle));
+            setPuzzles(puzzlesData);
 
             const submissionsQuery = query(
                 collection(db, 'submissions'),
@@ -93,11 +96,22 @@ export default function AdminDashboardPage() {
     const batch = writeBatch(db);
     const submissionRef = doc(db, "submissions", submissionId);
     const teamRef = doc(db, "teams", teamId);
+    const teamDoc = await getDocs(query(collection(db, 'teams'), where('id', '==', teamId)));
+    const currentTeam = teamDoc.docs[0]?.data() as Team;
 
-    let bonusPoints = 0;
+    if (!currentTeam) {
+        toast({ title: 'Error', description: 'Could not find team data.', variant: 'destructive'});
+        return;
+    }
+
+    let pointsToAdd = 0;
     let wasFirstSolve = false;
+    let victoryPoints = 0;
 
     if (decision === "approved") {
+        pointsToAdd += PUZZLE_REWARD;
+
+        // First Solve Bonus check
         const approvedSubmissionsQuery = query(
             collection(db, 'submissions'),
             where('puzzleId', '==', puzzleId),
@@ -106,18 +120,38 @@ export default function AdminDashboardPage() {
         const approvedSubmissionsSnapshot = await getDocs(approvedSubmissionsQuery);
         
         if (approvedSubmissionsSnapshot.empty) {
-            bonusPoints = FIRST_SOLVE_BONUS;
+            pointsToAdd += FIRST_SOLVE_BONUS;
             wasFirstSolve = true;
         }
 
         batch.update(submissionRef, { status: "approved" });
-        batch.update(teamRef, { 
-            score: increment(PUZZLE_REWARD + bonusPoints),
+
+        const teamPuzzles = puzzles.filter(p => p.pathId === currentTeam.pathId);
+        const isFinalPuzzle = currentTeam.currentPuzzleIndex + 1 === teamPuzzles.length;
+        
+        const teamUpdate: any = {
             riddlesSolved: increment(1),
             currentPuzzleIndex: increment(1),
             currentSubmissionId: null,
             currentPuzzleStartTime: serverTimestamp()
-        });
+        };
+
+        if (isFinalPuzzle) {
+            const finishersQuery = query(collection(db, 'teams'), where('finishTime', '!=', null));
+            const finishersSnapshot = await getDocs(finishersQuery);
+            const finishRank = finishersSnapshot.size + 1;
+
+            if (finishRank <= 10) {
+                victoryPoints = VICTORY_POINTS_MAP[finishRank - 1];
+                pointsToAdd += victoryPoints;
+            }
+            teamUpdate.finishTime = serverTimestamp();
+            teamUpdate.finishRank = finishRank;
+        }
+
+        teamUpdate.score = increment(pointsToAdd);
+        batch.update(teamRef, teamUpdate);
+
     } else { // rejected
         batch.update(submissionRef, { status: "rejected" });
         batch.update(teamRef, {
@@ -134,7 +168,15 @@ export default function AdminDashboardPage() {
         if (wasFirstSolve) {
             toast({
                 title: "First Solve Bonus!",
-                description: `This team gets an extra ${FIRST_SOLVE_BONUS} points for being the first to solve this puzzle.`,
+                description: `${currentTeam.name} gets an extra ${FIRST_SOLVE_BONUS} points!`,
+            });
+        }
+        if (victoryPoints > 0) {
+            toast({
+                title: "Victory Points Awarded!",
+                description: `${currentTeam.name} finished in the top 10 and gets an extra ${victoryPoints} points!`,
+                variant: 'default',
+                duration: 5000,
             });
         }
     } catch (error) {

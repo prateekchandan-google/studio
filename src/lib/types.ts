@@ -16,6 +16,8 @@ export interface Team {
   currentPuzzleStartTime?: Timestamp;
   gameStartTime?: Timestamp;
   revealedHints?: string[];
+  finishTime?: Timestamp;
+  finishRank?: number;
 }
 
 export interface Puzzle {
