@@ -38,7 +38,7 @@ const puzzleSchema = z.object({
 
 type PuzzleFormValues = z.infer<typeof puzzleSchema>;
 
-const PuzzleCard = ({ puzzle, index, onOpen, isDetailedView, onEdit, onContextMenu }: { puzzle: Puzzle; index: number; onOpen: () => void; isDetailedView: boolean, onEdit: () => void; onContextMenu: (event: React.MouseEvent | React.TouchEvent, puzzle: Puzzle) => void }) => {
+const PuzzleCard = ({ puzzle, index, onOpen, isDetailedView, onEdit, onContextMenu }: { puzzle: Puzzle; index: number; onOpen: () => void; isDetailedView: boolean, onEdit: () => void; onContextMenu: (event: React.MouseEvent, puzzle: Puzzle) => void }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: puzzle.id });
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -48,34 +48,18 @@ const PuzzleCard = ({ puzzle, index, onOpen, isDetailedView, onEdit, onContextMe
     opacity: isDragging ? 0.5 : 1,
   };
   
-  const handlePointerDown = (e: React.PointerEvent) => {
-    longPressTimer.current = setTimeout(() => {
-        onContextMenu(e as any, puzzle);
-    }, 500); // 500ms for long press
-  };
-
-  const handlePointerUp = () => {
-    if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current);
-    }
-  };
-
-
   return (
     <div 
         ref={setNodeRef} 
         style={style} 
         className="mb-4 touch-none"
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
         onContextMenu={(e) => {
           e.preventDefault();
           onContextMenu(e, puzzle);
         }}
     >
-      <Card className="bg-muted/50 relative" onClick={onOpen}>
-        <button {...attributes} {...listeners} className="absolute top-1/2 -translate-y-1/2 left-2 cursor-grab p-2">
+      <Card className="bg-muted/50 relative cursor-pointer" onClick={onOpen}>
+        <button {...attributes} {...listeners} className="absolute top-1/2 -translate-y-1/2 left-2 cursor-grab p-2 touch-none">
           <GripVertical className="text-muted-foreground" />
            <span className="sr-only">Drag to reorder puzzle</span>
         </button>
@@ -129,7 +113,7 @@ const PuzzleCard = ({ puzzle, index, onOpen, isDetailedView, onEdit, onContextMe
   );
 };
 
-const PuzzlePathColumn = ({ id, title, puzzles = [], onOpen, isDetailedView, onEdit, onContextMenu }: { id: string; title: string; puzzles?: Puzzle[]; onOpen: (puzzle: Puzzle) => void; isDetailedView: boolean; onEdit: (puzzle: Puzzle) => void; onContextMenu: (event: React.MouseEvent | React.TouchEvent, puzzle: Puzzle) => void; }) => {
+const PuzzlePathColumn = ({ id, title, puzzles = [], onOpen, isDetailedView, onEdit, onContextMenu }: { id: string; title: string; puzzles?: Puzzle[]; onOpen: (puzzle: Puzzle) => void; isDetailedView: boolean; onEdit: (puzzle: Puzzle) => void; onContextMenu: (event: React.MouseEvent, puzzle: Puzzle) => void; }) => {
   return (
     <div id={id} className="bg-card p-4 rounded-lg w-full border">
       <div className="flex justify-between items-center mb-4">
@@ -369,8 +353,9 @@ export default function PuzzleManagementPage() {
     }
   };
   
-  const handleContextMenu = (event: React.MouseEvent | React.TouchEvent, puzzle: Puzzle) => {
+  const handleContextMenu = (event: React.MouseEvent, puzzle: Puzzle) => {
     event.preventDefault();
+    event.stopPropagation();
     if (isContextMenuOpen) {
         setIsContextMenuOpen(false);
         setTimeout(() => handleContextMenu(event, puzzle), 50);
@@ -379,11 +364,7 @@ export default function PuzzleManagementPage() {
 
     setContextMenuPuzzle(puzzle);
     
-    const isTouchEvent = 'touches' in event;
-    const x = isTouchEvent ? event.touches[0].clientX : event.clientX;
-    const y = isTouchEvent ? event.touches[0].clientY : event.clientY;
-    
-    setContextMenuPosition({ x, y });
+    setContextMenuPosition({ x: event.clientX, y: event.clientY });
     setIsContextMenuOpen(true);
     
     setTimeout(() => {
