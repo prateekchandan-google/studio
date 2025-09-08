@@ -121,10 +121,17 @@ export default function RegistrationPage() {
       }
       
       let score = 0;
-      let awardedBonus = false;
-      if(teamCount < 3) {
+      let awardedBonusPoints = 0;
+      let bonusMessage = "";
+
+      if (teamCount < 3) {
           score = 10;
-          awardedBonus = true;
+          awardedBonusPoints = 10;
+          bonusMessage = "You're one of the first 3 teams to register! +10 bonus points for an immediate hint!";
+      } else if (teamCount < 6) {
+          score = 5;
+          awardedBonusPoints = 5;
+          bonusMessage = "You're one of the next 3 teams to register! +5 bonus points for a waited hint!";
       }
       
       const newTeam: Omit<Team, 'currentPuzzleStartTime' | 'gameStartTime'> = {
@@ -141,10 +148,10 @@ export default function RegistrationPage() {
     
       await setDoc(doc(db, "teams", teamId), newTeam);
       
-      if (awardedBonus) {
+      if (awardedBonusPoints > 0) {
         toast({
             title: "Early Bird Bonus!",
-            description: "You're one of the first 3 teams to register! +10 bonus points!",
+            description: bonusMessage,
         });
       }
 
