@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { doc, setDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs, onSnapshot, getCountFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -102,6 +102,10 @@ export default function RegistrationPage() {
 
     try {
       const teamsRef = collection(db, 'teams');
+      
+      const teamCountSnapshot = await getCountFromServer(teamsRef);
+      const teamCount = teamCountSnapshot.data().count;
+      
       const q = query(teamsRef, where("house", "==", data.houseName));
       const querySnapshot = await getDocs(q);
       const existingPathIds = querySnapshot.docs.map(doc => (doc.data() as Team).pathId).filter(id => id !== undefined);
@@ -116,12 +120,19 @@ export default function RegistrationPage() {
         assignedPathId = allPaths[Math.floor(Math.random() * allPaths.length)];
       }
       
+      let score = 0;
+      let awardedBonus = false;
+      if(teamCount < 3) {
+          score = 10;
+          awardedBonus = true;
+      }
+      
       const newTeam: Omit<Team, 'currentPuzzleStartTime' | 'gameStartTime'> = {
         id: teamId,
         name: data.teamName,
         house: data.houseName,
         members: data.members.map(m => m.name),
-        score: 0,
+        score: score,
         riddlesSolved: 0,
         currentPuzzleIndex: 0,
         secretCode: teamId,
@@ -130,6 +141,13 @@ export default function RegistrationPage() {
     
       await setDoc(doc(db, "teams", teamId), newTeam);
       
+      if (awardedBonus) {
+        toast({
+            title: "Early Bird Bonus!",
+            description: "You're one of the first 3 teams to register! +10 bonus points!",
+        });
+      }
+
       setNewlyRegisteredTeam(newTeam as Team);
       setSecretCode(teamId);
     } catch (error) {
@@ -345,3 +363,5 @@ export default function RegistrationPage() {
     </div>
   );
 }
+
+    
