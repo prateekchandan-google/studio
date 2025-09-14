@@ -1,4 +1,4 @@
-This project was done completely vibe-coded by firebase studio. This was made of Treasure hunt organised for  Google TV  team bangalore Ananta campus on 10th September 2025
+This project was done completely vibe-coded by firebase studio. This was made of Treasure hunt organised for  Google TV  team bangalore Ananta campus on 24th September 2025
 
 # Google TV Treasure Hunt 2025
 

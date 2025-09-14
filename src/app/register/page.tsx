@@ -220,7 +220,7 @@ export default function RegistrationPage() {
                         </Button>
                     </div>
                      <p className="text-sm text-muted-foreground mt-4">
-                        Please note your game code. You can log in with this code. If the game has not started, please visit this page on Sept 10th, 2:00 PM to begin.
+                        Please note your game code. You can log in with this code. If the game has not started, please visit this page on Sept 24th, 2:00 PM to begin.
                     </p>
                 </CardContent>
                 <CardFooter>

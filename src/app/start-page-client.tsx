@@ -231,7 +231,7 @@ export default function StartGamePage() {
             </div>
           <CardTitle className="font-headline text-2xl">{gameSettings?.isStarted ? 'Enter the Challenge' : 'Game Not Started'}</CardTitle>
           <CardDescription>
-            {gameSettings?.isStarted ? "Enter your team's secret code to begin." : "The game has not started yet, wait till 10th September Wednesday 2:00 PM"}
+            {gameSettings?.isStarted ? "Enter your team's secret code to begin." : "The game has not started yet, wait till 24th September Wednesday 2:00 PM"}
           </CardDescription>
         </CardHeader>
         {gameSettings?.isStarted ? (

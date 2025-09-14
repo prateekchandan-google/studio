@@ -676,7 +676,7 @@ export default function GamePage() {
                 </div>
               <CardTitle className="font-headline text-2xl">Game Has Not Started Yet</CardTitle>
               <CardDescription>
-                The game has not started yet, wait till 10th September Wednesday 2:00 PM. If the admin has started the game, please wait a moment.
+                The game has not started yet, wait till 24th September Wednesday 2:00 PM. If the admin has started the game, please wait a moment.
               </CardDescription>
             </CardHeader>
           </Card>
