@@ -13,11 +13,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { UserPlus, Users, X, Copy, Check, ArrowRight, Bot, Loader, TimerOff } from 'lucide-react';
+import { UserPlus, Users, X, Copy, Check, ArrowRight, Bot, Loader, TimerOff, Gift } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { Team, GameSettings } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { generateTeamName } from '@/ai/flows/name-generator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const houseNames = ["Halwa", "Chamcham", "Jalebi", "Ladoo"] as const;
 
@@ -266,9 +267,16 @@ export default function RegistrationPage() {
           <CardTitle className="font-headline text-3xl">Register Your Team</CardTitle>
           <CardDescription>Assemble your team, choose your house, and get ready for an adventure!</CardDescription>
         </CardHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent className="space-y-6">
+        <CardContent className="space-y-6">
+            <Alert className="border-yellow-500/50 bg-yellow-500/10 text-yellow-900 dark:text-yellow-200 animate-pulse">
+                <Gift className="h-5 w-5 text-yellow-500" />
+                <AlertTitle className="font-bold text-yellow-800 dark:text-yellow-300">Early Bird Bonus!</AlertTitle>
+                <AlertDescription className="text-yellow-700 dark:text-yellow-200">
+                    The <strong>first 3 teams</strong> to register get <strong>10 bonus points</strong>. The <strong>next 3 teams</strong> get <strong>5 bonus points</strong>. Register now!
+                </AlertDescription>
+            </Alert>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
               <div className="grid md:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
@@ -313,7 +321,7 @@ export default function RegistrationPage() {
                 />
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 mt-6">
                 <Label>Team Members ({fields.length}/7)</Label>
                 {fields.map((field, index) => (
                   <FormField
@@ -349,26 +357,24 @@ export default function RegistrationPage() {
                   </Button>
                 )}
               </div>
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? (
-                    <>
-                        <Loader className="mr-2 h-4 w-4 animate-spin" />
-                        Registering...
-                    </>
-                ) : (
-                    <>
-                        <Users className="mr-2 h-4 w-4" /> Register Team & Get Code
-                    </>
-                )}
-              </Button>
-            </CardFooter>
-          </form>
-        </Form>
+              <CardFooter className="p-0 pt-6">
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                        <>
+                            <Loader className="mr-2 h-4 w-4 animate-spin" />
+                            Registering...
+                        </>
+                    ) : (
+                        <>
+                            <Users className="mr-2 h-4 w-4" /> Register Team & Get Code
+                        </>
+                    )}
+                </Button>
+              </CardFooter>
+            </form>
+          </Form>
+        </CardContent>
       </Card>
     </div>
   );
 }
-
-    

@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LogIn, Key, Users, UserCheck, Loader, Timer, UserPlus } from 'lucide-react';
+import { LogIn, Key, Users, UserCheck, Loader, Timer, UserPlus, Gift } from 'lucide-react';
 import Link from 'next/link';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -237,6 +237,15 @@ export default function StartGamePage() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => handleLogin(data.secretCode))}>
               <CardContent className="space-y-4">
+                {gameSettings.isRegistrationOpen && (
+                    <Alert className="border-yellow-500/50 bg-yellow-500/10 text-yellow-900 dark:text-yellow-200 animate-pulse">
+                        <Gift className="h-5 w-5 text-yellow-500" />
+                        <AlertTitle className="font-bold text-yellow-800 dark:text-yellow-300">Early Bird Bonus!</AlertTitle>
+                        <AlertDescription className="text-yellow-700 dark:text-yellow-200">
+                            The <strong>first 3 teams</strong> to register get <strong>10 bonus points</strong>. The <strong>next 3 teams</strong> get <strong>5 bonus points</strong>. Register now!
+                        </AlertDescription>
+                    </Alert>
+                )}
                 <FormField
                   control={form.control}
                   name="secretCode"
@@ -299,6 +308,14 @@ export default function StartGamePage() {
         ) : (
              <CardFooter className="flex flex-col gap-4">
                 {gameSettings.isRegistrationOpen && (
+                  <>
+                    <Alert className="border-yellow-500/50 bg-yellow-500/10 text-yellow-900 dark:text-yellow-200 animate-pulse w-full">
+                        <Gift className="h-5 w-5 text-yellow-500" />
+                        <AlertTitle className="font-bold text-yellow-800 dark:text-yellow-300">Early Bird Bonus!</AlertTitle>
+                        <AlertDescription className="text-yellow-700 dark:text-yellow-200">
+                            The <strong>first 3 teams</strong> get <strong>10 bonus points</strong>. The <strong>next 3</strong> get <strong>5 points</strong>.
+                        </AlertDescription>
+                    </Alert>
                     <Button type="button" variant="secondary" className="w-full" asChild onClick={() => setIsRegistering(true)}>
                         <Link href="/register">
                             {isRegistering ? (
@@ -314,6 +331,7 @@ export default function StartGamePage() {
                             )}
                         </Link>
                     </Button>
+                  </>
                 )}
             </CardFooter>
         )}
