@@ -50,7 +50,7 @@ The application includes a secure, feature-rich admin panel for complete control
 
 ### Puzzle Management
 - **Create & Edit Puzzles**: Admins can create new puzzles, providing the riddle, answer, and an optional hint. An AI-powered title generator can suggest creative, gibberish titles for new puzzles.
-- **Drag-and-Drop Organization**: Puzzles are organized into five distinct paths. Admins can easily reorder puzzles within a path or move puzzles between paths using a drag-and-drop interface.
+- **Drag-and-Drop Organization**: Puzzles are organized into four distinct paths. Admins can easily reorder puzzles within a path or move puzzles between paths using a drag-and-drop interface.
 - **Detailed View**: A "Detailed View" toggle allows admins to see all puzzle information at a glance without needing to open each one.
 
 ### Team Management

@@ -112,7 +112,7 @@ export default function RegistrationPage() {
       const querySnapshot = await getDocs(q);
       const existingPathIds = querySnapshot.docs.map(doc => (doc.data() as Team).pathId).filter(id => id !== undefined);
 
-      const allPaths = [1, 2, 3, 4, 5];
+      const allPaths = [1, 2, 3, 4];
       const availablePaths = allPaths.filter(p => !existingPathIds.includes(p));
 
       let assignedPathId: number;

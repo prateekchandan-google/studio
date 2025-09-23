@@ -176,7 +176,6 @@ export default function PuzzleManagementPage() {
         'path-2': [],
         'path-3': [],
         'path-4': [],
-        'path-5': [],
     };
     
     puzzles.forEach(puzzle => {
@@ -511,7 +510,7 @@ export default function PuzzleManagementPage() {
                       <FormLabel>Assign to Path</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value ?? '1'}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select a path" /></SelectTrigger></FormControl>
-                        <SelectContent>{[1, 2, 3, 4, 5].map(i => (<SelectItem key={i} value={String(i)}>{`Path ${i}`}</SelectItem>))}</SelectContent>
+                        <SelectContent>{[1, 2, 3, 4].map(i => (<SelectItem key={i} value={String(i)}>{`Path ${i}`}</SelectItem>))}</SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>)} />
@@ -526,7 +525,7 @@ export default function PuzzleManagementPage() {
       )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragOver={handleDragOver}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {Object.entries(puzzlesByPath).map(([pathId, pathPuzzles]) => (
             <PuzzlePathColumn key={pathId} id={pathId} title={`Path ${pathId.split('-')[1]}`} puzzles={pathPuzzles} onOpen={openViewDialog} isDetailedView={isDetailedView} onEdit={openEditForm} onContextMenu={handleContextMenu} />
           ))}
