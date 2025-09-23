@@ -236,7 +236,7 @@ export default function GamePage() {
 
   
   useEffect(() => {
-    if (!teamId || !playerName) return;
+    if (teamId || !playerName) return;
 
     const teamRef = doc(db, 'teams', teamId);
     
@@ -973,5 +973,7 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
 
     
