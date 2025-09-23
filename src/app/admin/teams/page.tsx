@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, increment, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Team, Puzzle } from '@/lib/types';
+import type { Team, Puzzle, HouseName } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -24,9 +24,11 @@ const houseNames = ["Halwa", "Chamcham", "Jalebi", "Ladoo"] as const;
 
 const teamEditSchema = z.object({
   name: z.string().min(3, 'Team name must be at least 3 characters.'),
-  house: z.enum(houseNames, { required_error: 'Please select a house.' }),
   bonusScore: z.coerce.number().int().optional(),
-  members: z.array(z.object({ name: z.string().min(1, 'Member name cannot be empty.') }))
+  members: z.array(z.object({ 
+    name: z.string().min(1, 'Member name cannot be empty.'),
+    house: z.enum(houseNames, { required_error: 'Please select a house.' }),
+  }))
     .min(1, 'A team must have at least 1 member.')
     .max(4, 'A maximum of 4 members is allowed.'),
 });
@@ -54,12 +56,11 @@ export default function TeamManagementPage() {
     if (editingTeam) {
       form.reset({
         name: editingTeam.name,
-        house: editingTeam.house,
         bonusScore: 0,
-        members: editingTeam.members.map(name => ({ name })),
+        members: editingTeam.members.map(member => (typeof member === 'string' ? {name: member, house: 'Halwa'} : member)),
       });
     } else {
-      form.reset({ name: '', house: undefined, bonusScore: 0, members: [] });
+      form.reset({ name: '', bonusScore: 0, members: [] });
     }
   }, [editingTeam, form]);
 
@@ -139,8 +140,7 @@ export default function TeamManagementPage() {
 
       const updateData: any = {
         name: data.name,
-        house: data.house,
-        members: data.members.map(m => m.name),
+        members: data.members,
       };
 
       if (data.bonusScore) {
@@ -213,61 +213,62 @@ export default function TeamManagementPage() {
                   />
                   <FormField
                     control={form.control}
-                    name="house"
+                    name="bonusScore"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>House</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a house" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {houseNames.map(house => (
-                              <SelectItem key={house} value={house}>{house}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormLabel>Award Bonus Score</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="Enter points to add to the current score" {...field} />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-                <FormField
-                  control={form.control}
-                  name="bonusScore"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Award Bonus Score</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="Enter points to add to the current score" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                
                 <div className="space-y-4">
                   <Label>Team Members ({fields.length}/4)</Label>
                   {fields.map((field, index) => (
-                    <FormField
-                      key={field.id}
-                      control={form.control}
-                      name={`members.${index}.name`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center gap-2">
-                            <FormControl>
-                              <Input placeholder={`Member ${index + 1} Name`} {...field} disabled={isSubmitting} />
-                            </FormControl>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={isSubmitting || fields.length <= 1}>
+                    <div key={field.id} className="flex items-start gap-2">
+                        <FormField
+                            control={form.control}
+                            name={`members.${index}.name`}
+                            render={({ field }) => (
+                            <FormItem className="flex-grow">
+                                <FormControl>
+                                <Input placeholder={`Member ${index + 1} Name`} {...field} disabled={isSubmitting}/>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name={`members.${index}.house`}
+                            render={({ field }) => (
+                            <FormItem className="w-[150px]">
+                                <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="House" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {houseNames.map(house => (
+                                    <SelectItem key={house} value={house}>{house}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                         {fields.length > 1 && (
+                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={isSubmitting}>
                               <X className="w-4 h-4" />
                             </Button>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                          )}
+                    </div>
                   ))}
                   {form.formState.errors.members && (fields.length < 1 || fields.length > 4) && (
                     <p className="text-sm font-medium text-destructive">
@@ -280,7 +281,7 @@ export default function TeamManagementPage() {
                     </p>
                   )}
                   {fields.length < 4 && (
-                    <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '' })} disabled={isSubmitting}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '', house: 'Halwa' })} disabled={isSubmitting}>
                       <UserPlus className="mr-2 h-4 w-4" />
                       Add Member
                     </Button>
@@ -318,7 +319,7 @@ export default function TeamManagementPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Team Name</TableHead>
-                <TableHead>House</TableHead>
+                <TableHead>Houses</TableHead>
                 <TableHead>Secret Code</TableHead>
                 <TableHead>Members</TableHead>
                 <TableHead className="text-right">Progress</TableHead>
@@ -339,7 +340,9 @@ export default function TeamManagementPage() {
                 teams.map((team) => (
                   <TableRow key={team.id}>
                     <TableCell className="font-medium">{team.name}</TableCell>
-                    <TableCell>{team.house}</TableCell>
+                    <TableCell>
+                      {team.members.map(m => typeof m === 'string' ? '' : m.house).join(', ')}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="font-mono">
                         <Key className="w-3 h-3 mr-1.5"/>
@@ -400,5 +403,3 @@ export default function TeamManagementPage() {
     </div>
   );
 }
-
-    

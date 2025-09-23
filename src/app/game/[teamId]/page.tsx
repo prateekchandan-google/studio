@@ -572,7 +572,7 @@ export default function GamePage() {
     <div className="flex justify-between items-start mb-8 flex-wrap gap-4">
       <div>
         <h1 className="text-2xl font-headline font-bold">Welcome, {team.name}!</h1>
-        <p className="text-muted-foreground">House: {team.house} | Score: {team.score}</p>
+        <p className="text-muted-foreground">Score: {team.score}</p>
          <div className="flex items-center gap-2 mt-2 text-sm text-green-500 font-medium">
             <Users className="w-4 h-4"/>
             <span>Online: {onlinePlayers.join(', ')}</span>
@@ -973,11 +973,3 @@ export default function GamePage() {
     </div>
   );
 }
-
-    
-
-    
-
-
-
-    

@@ -15,18 +15,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { UserPlus, Users, X, Copy, Check, ArrowRight, Bot, Loader, TimerOff, Gift } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import type { Team, GameSettings } from '@/lib/types';
+import type { Team, GameSettings, HouseName, TeamMember } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { generateTeamName } from '@/ai/flows/name-generator';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { EarlyBirdAlert } from '@/components/early-bird-alert';
 
 const houseNames = ["Halwa", "Chamcham", "Jalebi", "Ladoo"] as const;
 
 const registrationSchema = z.object({
   teamName: z.string().min(3, 'Team name must be at least 3 characters.'),
-  houseName: z.enum(houseNames, { required_error: 'Please select a house.' }),
-  members: z.array(z.object({ name: z.string().min(1, 'Member name cannot be empty.') }))
+  members: z.array(z.object({ 
+    name: z.string().min(1, 'Member name cannot be empty.'),
+    house: z.enum(houseNames, { required_error: 'Please select a house.' }),
+  }))
     .min(1, 'A team must have at least 1 member.')
     .max(4, 'A maximum of 4 members is allowed.'),
 });
@@ -48,7 +49,7 @@ export default function RegistrationPage() {
     resolver: zodResolver(registrationSchema),
     defaultValues: {
       teamName: '',
-      members: [{ name: '' }],
+      members: [{ name: '', house: 'Halwa' }],
     },
   });
 
@@ -70,11 +71,11 @@ export default function RegistrationPage() {
   });
 
   const handleGenerateName = async () => {
-    const houseName = form.getValues('houseName');
-    if (!houseName) {
+    const firstMemberHouse = form.getValues('members.0.house');
+    if (!firstMemberHouse) {
         toast({
             title: "Select a house first!",
-            description: "Please choose a house before generating a name.",
+            description: "Please choose a house for the first member before generating a name.",
             variant: "destructive",
         });
         return;
@@ -83,7 +84,7 @@ export default function RegistrationPage() {
     toast({ title: "Generating team name...", description: "Please wait a moment." });
     
     try {
-        const result = await generateTeamName({ houseName });
+        const result = await generateTeamName({ houseName: firstMemberHouse });
         if (result.teamName) {
             form.setValue('teamName', result.teamName);
             toast({ title: "Name Suggested!", description: `How about \"${result.teamName}\"?` });
@@ -100,7 +101,7 @@ export default function RegistrationPage() {
 
   const onSubmit = async (data: RegistrationFormValues) => {
     setIsSubmitting(true);
-    const teamId = `${data.houseName.toLowerCase()}-${Math.random().toString(36).substring(2, 8)}`;
+    const teamId = `${data.members[0].house.toLowerCase()}-${Math.random().toString(36).substring(2, 8)}`;
 
     try {
       const teamsRef = collection(db, 'teams');
@@ -108,19 +109,19 @@ export default function RegistrationPage() {
       const teamCountSnapshot = await getCountFromServer(teamsRef);
       const teamCount = teamCountSnapshot.data().count;
       
-      const q = query(teamsRef, where("house", "==", data.houseName));
-      const querySnapshot = await getDocs(q);
-      const existingPathIds = querySnapshot.docs.map(doc => (doc.data() as Team).pathId).filter(id => id !== undefined);
+      const allPathIdsOnTeams = (await getDocs(teamsRef)).docs.map(doc => (doc.data() as Team).pathId).filter(id => id !== undefined);
 
       const allPaths = [1, 2, 3, 4];
-      const availablePaths = allPaths.filter(p => !existingPathIds.includes(p));
-
-      let assignedPathId: number;
-      if (availablePaths.length > 0) {
-        assignedPathId = availablePaths[Math.floor(Math.random() * availablePaths.length)];
-      } else {
-        assignedPathId = allPaths[Math.floor(Math.random() * allPaths.length)];
-      }
+      const pathCounts: Record<number, number> = allPaths.reduce((acc, path) => ({...acc, [path]: 0}), {});
+      allPathIdsOnTeams.forEach(pathId => {
+          if (pathId && pathCounts[pathId] !== undefined) {
+              pathCounts[pathId]++;
+          }
+      });
+      
+      const minCount = Math.min(...Object.values(pathCounts));
+      const leastUsedPaths = allPaths.filter(path => pathCounts[path] === minCount);
+      const assignedPathId = leastUsedPaths[Math.floor(Math.random() * leastUsedPaths.length)];
       
       let score = 0;
       let awardedBonusPoints = 0;
@@ -139,8 +140,7 @@ export default function RegistrationPage() {
       const newTeam: Omit<Team, 'currentPuzzleStartTime' | 'gameStartTime'> = {
         id: teamId,
         name: data.teamName,
-        house: data.houseName,
-        members: data.members.map(m => m.name),
+        members: data.members,
         score: score,
         riddlesSolved: 0,
         currentPuzzleIndex: 0,
@@ -184,7 +184,7 @@ export default function RegistrationPage() {
       setIsContinuing(true);
       // The user who registered is the first player.
       localStorage.setItem('pathfinder-active-teamId', newlyRegisteredTeam.id);
-      localStorage.setItem(`pathfinder-player-${newlyRegisteredTeam.id}`, newlyRegisteredTeam.members[0]);
+      localStorage.setItem(`pathfinder-player-${newlyRegisteredTeam.id}`, newlyRegisteredTeam.members[0].name);
       router.push(`/game/${newlyRegisteredTeam.id}`);
     }
   }
@@ -271,30 +271,7 @@ export default function RegistrationPage() {
         <CardContent className="space-y-6">
             <EarlyBirdAlert />
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-              <div className="grid md:grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="houseName"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>House Name</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="Select your house" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            {houseNames.map(house => (
-                            <SelectItem key={house} value={house}>{house}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                  <FormField
                   control={form.control}
                   name="teamName"
@@ -314,31 +291,50 @@ export default function RegistrationPage() {
                     </FormItem>
                   )}
                 />
-              </div>
 
-              <div className="space-y-4 mt-6">
+              <div className="space-y-4">
                 <Label>Team Members ({fields.length}/4)</Label>
                 {fields.map((field, index) => (
-                  <FormField
-                    key={field.id}
-                    control={form.control}
-                    name={`members.${index}.name`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center gap-2">
-                           <FormControl>
-                            <Input placeholder={`Member ${index + 1} Name/Alias`} {...field} disabled={isSubmitting}/>
-                          </FormControl>
-                          {fields.length > 1 && (
+                    <div key={field.id} className="flex items-start gap-2">
+                        <FormField
+                            control={form.control}
+                            name={`members.${index}.name`}
+                            render={({ field }) => (
+                            <FormItem className="flex-grow">
+                                <FormControl>
+                                <Input placeholder={`Member ${index + 1} Name/Alias`} {...field} disabled={isSubmitting}/>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name={`members.${index}.house`}
+                            render={({ field }) => (
+                            <FormItem className="w-[150px]">
+                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="House" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {houseNames.map(house => (
+                                    <SelectItem key={house} value={house}>{house}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                         {fields.length > 1 && (
                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={isSubmitting}>
                               <X className="w-4 h-4" />
                             </Button>
                           )}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    </div>
                 ))}
                  {form.formState.errors.members && (fields.length < 1 || fields.length > 4) && (
                     <p className="text-sm font-medium text-destructive">
@@ -346,7 +342,7 @@ export default function RegistrationPage() {
                     </p>
                 )}
                 {fields.length < 4 && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '' })} disabled={isSubmitting}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '', house: 'Halwa' })} disabled={isSubmitting}>
                     <UserPlus className="mr-2 h-4 w-4" />
                     Add Member
                   </Button>
@@ -373,5 +369,3 @@ export default function RegistrationPage() {
     </div>
   );
 }
-
-    

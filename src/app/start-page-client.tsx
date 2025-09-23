@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { doc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Team, GameSettings } from '@/lib/types';
+import type { Team, GameSettings, TeamMember } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -194,16 +194,19 @@ export default function StartGamePage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-2">
-                        {team.members.map(member => (
-                            <Button 
-                                key={member}
-                                variant={selectedMember === member ? "default" : "outline"}
-                                onClick={() => setSelectedMember(member)}
-                                className="w-full"
-                            >
-                                {member}
-                            </Button>
-                        ))}
+                        {team.members.map((member: string | TeamMember) => {
+                            const memberName = typeof member === 'string' ? member : member.name;
+                            return (
+                                <Button 
+                                    key={memberName}
+                                    variant={selectedMember === memberName ? "default" : "outline"}
+                                    onClick={() => setSelectedMember(memberName)}
+                                    className="w-full"
+                                >
+                                    {memberName}
+                                </Button>
+                            )
+                        })}
                     </div>
                     {error && (
                         <Alert variant="destructive">
@@ -328,5 +331,3 @@ export default function StartGamePage() {
     </div>
   );
 }
-
-    

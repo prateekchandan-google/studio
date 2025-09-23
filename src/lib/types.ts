@@ -1,11 +1,17 @@
 
 import type { Timestamp } from 'firebase/firestore';
 
+export type HouseName = 'Halwa' | 'Chamcham' | 'Jalebi' | 'Ladoo';
+
+export interface TeamMember {
+  name: string;
+  house: HouseName;
+}
+
 export interface Team {
   id: string;
   name: string;
-  house: 'Halwa' | 'Chamcham' | 'Jalebi' | 'Ladoo';
-  members: string[];
+  members: TeamMember[];
   score: number;
   riddlesSolved: number;
   currentPuzzleIndex: number;

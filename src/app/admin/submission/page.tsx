@@ -250,7 +250,7 @@ export default function AdminDashboardPage() {
                        <Users className="w-4 h-4 mt-1 text-muted-foreground" />
                        <div>
                          <h4 className="font-semibold">Team Members</h4>
-                         <p className="text-muted-foreground">{submission.team.members.join(', ')}</p>
+                         <p className="text-muted-foreground">{submission.team.members.map(m => typeof m === 'string' ? m : m.name).join(', ')}</p>
                        </div>
                      </div>
                    )}

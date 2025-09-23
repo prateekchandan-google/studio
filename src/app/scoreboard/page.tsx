@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -11,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Team } from "@/lib/types";
+import type { Team, TeamMember } from "@/lib/types";
 import { Trophy, ShieldX, Loader, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -62,12 +63,22 @@ export default function ScoreboardPage() {
   }
 
   const housePoints = teams.reduce((acc, team) => {
-    if (!acc[team.house]) {
-        acc[team.house] = 0;
-    }
-    acc[team.house] += team.score;
+    if (!team.members || team.members.length === 0) return acc;
+    
+    const pointsPerMember = team.score / team.members.length;
+
+    team.members.forEach((member: TeamMember) => {
+      const houseName = typeof member === 'string' ? 'Halwa' : member.house; // Backwards compatibility for old data structure
+      if (!acc[houseName]) {
+          acc[houseName] = 0;
+      }
+      acc[houseName] += pointsPerMember;
+    });
+
     return acc;
   }, {} as Record<string, number>);
+
+  const sortedHousePoints = Object.entries(housePoints).sort(([, a], [, b]) => b - a);
 
 
   return (
@@ -82,14 +93,14 @@ export default function ScoreboardPage() {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {Object.entries(housePoints).map(([house, score]) => (
+        {sortedHousePoints.map(([house, score]) => (
             <Card key={house} className={`border-l-4 ${getHouseColor(house)}`}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">{house} Points</CardTitle>
                     <Trophy className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{score}</div>
+                    <div className="text-2xl font-bold">{Math.round(score)}</div>
                     <p className="text-xs text-muted-foreground">Total house score</p>
                 </CardContent>
             </Card>
@@ -102,7 +113,7 @@ export default function ScoreboardPage() {
             <TableRow>
               <TableHead className="w-[80px] text-center">Rank</TableHead>
               <TableHead>Team</TableHead>
-              <TableHead>House</TableHead>
+              <TableHead>Houses</TableHead>
               <TableHead className="text-right">Riddles Solved</TableHead>
               <TableHead className="text-right">Score</TableHead>
             </TableRow>
@@ -129,10 +140,12 @@ export default function ScoreboardPage() {
                     <div>{team.name}</div>
                     <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-1">
                       <Users className="w-3 h-3" />
-                      {team.members.join(', ')}
+                      {team.members.map(m => typeof m === 'string' ? m : m.name).join(', ')}
                     </div>
                   </TableCell>
-                  <TableCell>{team.house}</TableCell>
+                  <TableCell>
+                    {team.members.map(m => typeof m === 'string' ? '' : m.house).join(', ')}
+                  </TableCell>
                   <TableCell className="text-right">{team.riddlesSolved}</TableCell>
 
                   <TableCell className="text-right font-bold text-lg">{team.score}</TableCell>
