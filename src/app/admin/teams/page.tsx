@@ -28,7 +28,7 @@ const teamEditSchema = z.object({
   bonusScore: z.coerce.number().int().optional(),
   members: z.array(z.object({ name: z.string().min(1, 'Member name cannot be empty.') }))
     .min(1, 'A team must have at least 1 member.')
-    .max(7, 'A maximum of 7 members is allowed.'),
+    .max(4, 'A maximum of 4 members is allowed.'),
 });
 
 type TeamEditFormValues = z.infer<typeof teamEditSchema>;
@@ -248,7 +248,7 @@ export default function TeamManagementPage() {
                   )}
                 />
                 <div className="space-y-4">
-                  <Label>Team Members ({fields.length}/7)</Label>
+                  <Label>Team Members ({fields.length}/4)</Label>
                   {fields.map((field, index) => (
                     <FormField
                       key={field.id}
@@ -269,7 +269,7 @@ export default function TeamManagementPage() {
                       )}
                     />
                   ))}
-                  {form.formState.errors.members && (fields.length < 1 || fields.length > 7) && (
+                  {form.formState.errors.members && (fields.length < 1 || fields.length > 4) && (
                     <p className="text-sm font-medium text-destructive">
                       {form.formState.errors.members?.message}
                     </p>
@@ -279,7 +279,7 @@ export default function TeamManagementPage() {
                       {form.formState.errors.members.root.message}
                     </p>
                   )}
-                  {fields.length < 7 && (
+                  {fields.length < 4 && (
                     <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '' })} disabled={isSubmitting}>
                       <UserPlus className="mr-2 h-4 w-4" />
                       Add Member
@@ -400,3 +400,5 @@ export default function TeamManagementPage() {
     </div>
   );
 }
+
+    

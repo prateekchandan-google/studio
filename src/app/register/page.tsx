@@ -27,8 +27,8 @@ const registrationSchema = z.object({
   teamName: z.string().min(3, 'Team name must be at least 3 characters.'),
   houseName: z.enum(houseNames, { required_error: 'Please select a house.' }),
   members: z.array(z.object({ name: z.string().min(1, 'Member name cannot be empty.') }))
-    .min(3, 'A minimum of 3 members is required.')
-    .max(7, 'A maximum of 7 members is allowed.'),
+    .min(1, 'A team must have at least 1 member.')
+    .max(4, 'A maximum of 4 members is allowed.'),
 });
 
 type RegistrationFormValues = z.infer<typeof registrationSchema>;
@@ -48,7 +48,7 @@ export default function RegistrationPage() {
     resolver: zodResolver(registrationSchema),
     defaultValues: {
       teamName: '',
-      members: [{ name: '' }, { name: '' }, { name: '' }],
+      members: [{ name: '' }],
     },
   });
 
@@ -317,7 +317,7 @@ export default function RegistrationPage() {
               </div>
 
               <div className="space-y-4 mt-6">
-                <Label>Team Members ({fields.length}/7)</Label>
+                <Label>Team Members ({fields.length}/4)</Label>
                 {fields.map((field, index) => (
                   <FormField
                     key={field.id}
@@ -329,7 +329,7 @@ export default function RegistrationPage() {
                            <FormControl>
                             <Input placeholder={`Member ${index + 1} Name/Alias`} {...field} disabled={isSubmitting}/>
                           </FormControl>
-                          {fields.length > 3 && (
+                          {fields.length > 1 && (
                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={isSubmitting}>
                               <X className="w-4 h-4" />
                             </Button>
@@ -340,12 +340,12 @@ export default function RegistrationPage() {
                     )}
                   />
                 ))}
-                 {form.formState.errors.members && (fields.length < 3 || fields.length > 7) && (
+                 {form.formState.errors.members && (fields.length < 1 || fields.length > 4) && (
                     <p className="text-sm font-medium text-destructive">
                         {form.formState.errors.message}
                     </p>
                 )}
-                {fields.length < 7 && (
+                {fields.length < 4 && (
                   <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '' })} disabled={isSubmitting}>
                     <UserPlus className="mr-2 h-4 w-4" />
                     Add Member
