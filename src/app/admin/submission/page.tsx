@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X, Bot, Loader, UserCircle, Users, Key } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { analyzeSubmission } from "@/ai/flows/submission-analyzer";
-import { collection, query, where, onSnapshot, orderBy, writeBatch, doc, increment, getDocs, FieldValue, serverTimestamp, getDoc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy, writeBatch, doc, increment, getDocs, FieldValue, serverTimestamp, getDoc, arrayUnion } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { easterEggs } from "@/lib/easter-eggs";
 
 
 type SubmissionWithAI = Submission & {
@@ -92,7 +93,7 @@ export default function AdminDashboardPage() {
   }, [toast]);
 
 
-  const handleDecision = async (submissionId: string, teamId: string, puzzleId: string, decision: "approved" | "rejected") => {
+  const handleDecision = async (submissionId: string, teamId: string, puzzleId: string, textSubmission: string, decision: "approved" | "rejected") => {
     const batch = writeBatch(db);
     const submissionRef = doc(db, "submissions", submissionId);
     const teamRef = doc(db, "teams", teamId);
@@ -108,6 +109,8 @@ export default function AdminDashboardPage() {
     let pointsToAdd = 0;
     let wasFirstSolve = false;
     let victoryPoints = 0;
+    
+    const teamUpdate: any = {};
 
     if (decision === "approved") {
         pointsToAdd += PUZZLE_REWARD;
@@ -124,18 +127,30 @@ export default function AdminDashboardPage() {
             pointsToAdd += FIRST_SOLVE_BONUS;
             wasFirstSolve = true;
         }
+        
+        // Easter Egg Check
+        const submissionTextLower = textSubmission.toLowerCase();
+        const foundEasterEgg = easterEggs.find(egg => submissionTextLower.includes(egg.phrase));
+
+        if (foundEasterEgg && !currentTeam.foundEasterEggs?.includes(foundEasterEgg.id)) {
+            pointsToAdd += foundEasterEgg.points;
+            teamUpdate.foundEasterEggs = arrayUnion(foundEasterEgg.id);
+            toast({
+                title: 'Easter Egg Found!',
+                description: `${currentTeam.name} gets ${foundEasterEgg.points} bonus points for finding an easter egg! "${foundEasterEgg.message}"`,
+            });
+        }
+
 
         batch.update(submissionRef, { status: "approved" });
 
         const teamPuzzles = puzzles.filter(p => p.pathId === currentTeam.pathId);
         const isFinalPuzzle = currentTeam.currentPuzzleIndex + 1 === teamPuzzles.length;
         
-        const teamUpdate: any = {
-            riddlesSolved: increment(1),
-            currentPuzzleIndex: increment(1),
-            currentSubmissionId: null,
-            currentPuzzleStartTime: serverTimestamp()
-        };
+        teamUpdate.riddlesSolved = increment(1);
+        teamUpdate.currentPuzzleIndex = increment(1);
+        teamUpdate.currentSubmissionId = null;
+        teamUpdate.currentPuzzleStartTime = serverTimestamp();
 
         if (isFinalPuzzle) {
             const finishersQuery = query(collection(db, 'teams'), where('finishTime', '!=', null));
@@ -298,14 +313,14 @@ export default function AdminDashboardPage() {
               <CardFooter className="flex gap-2">
                 <Button
                   className="w-full"
-                  onClick={() => handleDecision(submission.id, submission.teamId, submission.puzzleId, "approved")}
+                  onClick={() => handleDecision(submission.id, submission.teamId, submission.puzzleId, submission.textSubmission, "approved")}
                 >
                   <Check className="w-4 h-4 mr-2" /> Approve
                 </Button>
                 <Button
                   variant="destructive"
                   className="w-full"
-                  onClick={() => handleDecision(submission.id, submission.teamId, submission.puzzleId, "rejected")}
+                  onClick={() => handleDecision(submission.id, submission.teamId, submission.puzzleId, submission.textSubmission, "rejected")}
                 >
                   <X className="w-4 h-4 mr-2" /> Reject
                 </Button>

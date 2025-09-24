@@ -24,6 +24,7 @@ export interface Team {
   revealedHints?: string[];
   finishTime?: Timestamp;
   finishRank?: number;
+  foundEasterEggs?: string[];
 }
 
 export interface Puzzle {

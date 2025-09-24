@@ -32,6 +32,14 @@ const OVERALL_GAME_DURATION = 60 * 60; // 60 minutes in seconds
 const HINT_DELAY = 5 * 60; // 5 minutes in seconds
 const SKIP_DELAY = 10 * 60; // 10 minutes in seconds
 
+const approvalToasts = [
+    `+${PUZZLE_REWARD} points! On to the next challenge.`,
+    `+${PUZZLE_REWARD} points! Excellent work, team!`,
+    `+${PUZZLE_REWARD} points! You're on a roll!`,
+    `+${PUZZLE_REWARD} points! P.S. Clever phrases in your next submission might yield a surprise!`,
+    `+${PUZZLE_REWARD} points! Did you know some submissions hide secret points?`,
+];
+
 export default function GamePage() {
   const params = useParams();
   const teamId = params.teamId as string;
@@ -152,20 +160,31 @@ export default function GamePage() {
         }
         if (prevPuzzleIndexRef.current !== undefined && teamData.currentPuzzleIndex > prevPuzzleIndexRef.current) {
             const scoreIncrease = teamData.score - (prevScoreRef.current ?? teamData.score);
-            let message = `+${PUZZLE_REWARD} points! On to the next challenge.`;
+            const approvalToast = approvalToasts[Math.floor(Math.random() * approvalToasts.length)];
+
+            toast({
+                title: 'Solution Approved!',
+                description: approvalToast,
+            });
 
             if (scoreIncrease > PUZZLE_REWARD && scoreIncrease <= PUZZLE_REWARD + FIRST_SOLVE_BONUS) {
                 toast({
                     title: 'First Solve Bonus!',
                     description: `You were the first team to solve that! +${FIRST_SOLVE_BONUS} bonus points!`,
                 });
-            } else {
-                 toast({
-                    title: 'Solution Approved!',
-                    description: `+${PUZZLE_REWARD} points! On to the next challenge.`,
-                });
             }
 
+            if (scoreIncrease > PUZZLE_REWARD) {
+                const bonusPoints = scoreIncrease - PUZZLE_REWARD;
+                 // A simple way to check if an easter egg was likely involved
+                if (!teamData.finishRank && bonusPoints > 0 && bonusPoints < FIRST_SOLVE_BONUS) {
+                     toast({
+                        title: 'Secret Bonus!',
+                        description: `Your clever submission earned you +${bonusPoints} extra points!`,
+                    });
+                }
+            }
+            
             if (teamData.finishRank && teamData.finishRank > 0 && teamData.finishRank <= 10) {
                  const victoryPoints = VICTORY_POINTS_MAP[teamData.finishRank - 1];
                  toast({
@@ -418,7 +437,6 @@ export default function GamePage() {
       const teamRef = doc(db, 'teams', team.id);
       batch.update(teamRef, {
           currentPuzzleIndex: nextPuzzleIndex,
-          score: team.score - SKIP_PENALTY,
           currentSubmissionId: null,
           currentPuzzleStartTime: serverTimestamp(),
       });
