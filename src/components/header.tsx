@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Loader, Shield } from "lucide-react";
+import { Menu, Loader, Shield, Swords } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
 import { useEffect, useState } from "react";
@@ -20,6 +20,7 @@ const baseNavLinks = [
   { href: "/rules", label: "Rules" },
   { href: "/scoreboard", label: "Scoreboard" },
   { href: "/gallery", label: "Gallery" },
+  { href: "/self-play", label: "Self Play", icon: Swords },
 ];
 
 export function Header() {
@@ -76,11 +77,12 @@ export function Header() {
           href={link.href}
           onClick={() => handleLinkClick(link.href)}
           className={cn(
-            "transition-colors hover:text-foreground/80",
-            isMobile ? "flex items-center px-4" : "",
+            "transition-colors hover:text-foreground/80 flex items-center gap-2",
+            isMobile ? "px-4" : "",
             getLinkClass(link.href)
           )}
         >
+          {link.icon && <link.icon className="h-4 w-4" />}
           {link.label}
         </Link>
     ));
