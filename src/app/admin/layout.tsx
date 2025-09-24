@@ -15,7 +15,7 @@ const navLinks = [
   { href: '/admin/submission', label: 'Submissions', icon: CheckSquare },
   { href: '/admin/teams', label: 'Team Management', icon: Users },
   { href: '/admin/puzzles', label: 'Puzzle Management', icon: Puzzle },
-  { href: '/admin/gallery', label: 'Gallery', icon: GalleryHorizontal },
+  { href: '/gallery', label: 'Gallery', icon: GalleryHorizontal },
 ];
 
 export default function AdminLayout({

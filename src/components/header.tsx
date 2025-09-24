@@ -19,6 +19,7 @@ const baseNavLinks = [
   { href: "/", label: "Start Game" },
   { href: "/rules", label: "Rules" },
   { href: "/scoreboard", label: "Scoreboard" },
+  { href: "/gallery", label: "Gallery" },
 ];
 
 export function Header() {
@@ -62,10 +63,6 @@ export function Header() {
   let navLinks = [...baseNavLinks];
   if (gameSettings?.isRegistrationOpen && !hasActiveSession) {
     navLinks.splice(1, 0, { href: "/register", label: "Register" });
-  }
-
-  if (isAdmin) {
-    navLinks.push({ href: "/admin/gallery", label: "Gallery" });
   }
 
   const renderNavLinks = (isMobile = false) => {
