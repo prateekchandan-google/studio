@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -15,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LogIn, Key, Users, UserCheck, Loader, Timer, UserPlus, Gift } from 'lucide-react';
+import { LogIn, Key, Users, UserCheck, Loader, Timer, UserPlus, Gift, Trophy, BrainCircuit } from 'lucide-react';
 import Link from 'next/link';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { EarlyBirdAlert } from '@/components/early-bird-alert';
@@ -229,104 +230,30 @@ export default function StartGamePage() {
     <div className="relative min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-4">
       <Card className="w-full max-w-md z-10">
         <CardHeader className="text-center">
-            <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
-                {gameSettings?.isStarted ? <Key className="w-8 h-8 text-primary" /> : <Timer className="w-8 h-8 text-primary" />}
+            <div className="mx-auto bg-accent/20 p-4 rounded-full mb-4 w-fit border border-accent/50">
+                <Trophy className="w-8 h-8 text-accent" />
             </div>
-          <CardTitle className="font-headline text-2xl">{gameSettings?.isStarted ? 'Enter the Challenge' : 'Game Not Started'}</CardTitle>
+          <CardTitle className="font-headline text-2xl">The Hunt is Over!</CardTitle>
           <CardDescription>
-            {gameSettings?.isStarted ? "Enter your team's secret code to begin." : "The game has not started yet, wait till 24th September Wednesday 2:00 PM"}
+            Thank you to all the teams who participated in the Google TV Treasure Hunt 2025. We hope you had a fantastic adventure!
           </CardDescription>
         </CardHeader>
-        {gameSettings?.isStarted ? (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => handleLogin(data.secretCode))}>
-              <CardContent className="space-y-4">
-                {gameSettings.isRegistrationOpen && (
-                    <EarlyBirdAlert />
-                )}
-                <FormField
-                  control={form.control}
-                  name="secretCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Secret Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="halwa-xxxxxx" {...field} disabled={isSubmitting}/>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-              <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                      <>
-                          <Loader className="mr-2 h-4 w-4 animate-spin" />
-                          Logging in...
-                      </>
-                  ) : (
-                      <>
-                          <LogIn className="mr-2 h-4 w-4" /> Enter Challenge
-                      </>
-                  )}
-                </Button>
-                {gameSettings.isRegistrationOpen && (
-                    <>
-                        <div className="relative w-full flex items-center">
-                            <div className="flex-grow border-t border-muted-foreground/20"></div>
-                            <span className="flex-shrink mx-4 text-xs text-muted-foreground uppercase">Or</span>
-                            <div className="flex-grow border-t border-muted-foreground/20"></div>
-                        </div>
-                         <Button type="button" variant="secondary" className="w-full" asChild onClick={() => setIsRegistering(true)}>
-                            <Link href="/register">
-                                {isRegistering ? (
-                                    <>
-                                        <Loader className="mr-2 h-4 w-4 animate-spin" />
-                                        Please wait...
-                                    </>
-                                ) : (
-                                    <>
-                                        <UserPlus className="mr-2 h-4 w-4" />
-                                        Register New Team
-                                    </>
-                                )}
-                            </Link>
-                        </Button>
-                    </>
-                )}
-              </CardFooter>
-            </form>
-          </Form>
-        ) : (
-             <CardFooter className="flex flex-col gap-4">
-                {gameSettings.isRegistrationOpen && (
-                  <>
-                    <EarlyBirdAlert />
-                    <Button type="button" variant="secondary" className="w-full" asChild onClick={() => setIsRegistering(true)}>
-                        <Link href="/register">
-                            {isRegistering ? (
-                                <>
-                                    <Loader className="mr-2 h-4 w-4 animate-spin" />
-                                    Please wait...
-                                </>
-                            ) : (
-                                <>
-                                    <UserPlus className="mr-2 h-4 w-4" />
-                                    Register New Team
-                                </>
-                            )}
-                        </Link>
-                    </Button>
-                  </>
-                )}
-            </CardFooter>
-        )}
+        <CardContent>
+            <p className="text-center text-muted-foreground">
+                You can check out the final rankings on the scoreboard or solve the puzzles on your own in Self Play mode.
+            </p>
+        </CardContent>
+        <CardFooter className="flex-col gap-4">
+            <Button asChild className="w-full">
+                <Link href="/scoreboard">View Final Scoreboard</Link>
+            </Button>
+            <Button asChild variant="secondary" className="w-full">
+                <Link href="/self-play">
+                    <BrainCircuit className="mr-2 h-4 w-4" />
+                    Enter Self Play Mode
+                </Link>
+            </Button>
+        </CardFooter>
       </Card>
     </div>
   );
